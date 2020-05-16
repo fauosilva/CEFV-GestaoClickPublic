@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      0.3
+// @version      0.4
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://gestaoclick.com/movimentacoes_financeiras/index_recebimento*
@@ -12,6 +12,13 @@
 
 (function () {
     'use strict';
+
+    function htmlToElement(html) {
+        var template = document.createElement('template');
+        html = html.trim(); // Never return a text node of whitespace as the result
+        template.innerHTML = html;
+        return template.content;
+    }
 
     var HttpClient = function () {
         this.get = function (aUrl, aCallback) {
@@ -32,10 +39,16 @@
         return tabularSearch(baseDocument, usefullProperties);
     }
 
-    function getPropriedadesRecibo(baseDocument) {
+    function getPropriedadesRecibo(linkDetalhes) {
+        let request = new HttpClient();
+        console.log("GetPropriedadesRecibo: " + linkDetalhes);
+        request.get(linkDetalhes, parsePropriedadesRecibo);
+    }
+
+    function parsePropriedadesRecibo(responseText) {
+        let baseDocument = htmlToElement(responseText);
         let usefullProperties = ['Código', 'Descrição do recebimento', 'Plano de contas', 'Data do vencimento', 'Data de confirmação', 'Cliente', 'Observações'];
         return tabularSearch(baseDocument, usefullProperties);
-        //let returnJson = {'Código' : '', 'Descrição do recebimento': '', 'Plano de contas': '', 'Data do vencimento': '', 'Data de confirmação': '', 'Cliente': '', 'Observações' : ''};
     }
 
     function tabularSearch(baseDocument, usefullProperties) {
@@ -73,7 +86,7 @@
     function createEnviarRecebimento(link) {
         var listItem = document.createElement('li');
         var anchor = document.createElement('a');
-        anchor.href = link + "?retorno=https://gestaoclick.com/movimentacoes_financeiras/index_recebimento";
+        anchor.onclick = function () { getPropriedadesRecibo(link); };
         var icon = document.createElement('i');
         icon.className = "text-maroon fa fa-envelope";
         anchor.appendChild(icon);
