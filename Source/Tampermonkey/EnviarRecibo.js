@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      0.4
+// @version      0.5
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://gestaoclick.com/movimentacoes_financeiras/index_recebimento*
@@ -14,10 +14,10 @@
     'use strict';
 
     function htmlToElement(html) {
-        var template = document.createElement('template');
+        var template = document.createElement('div');
         html = html.trim(); // Never return a text node of whitespace as the result
         template.innerHTML = html;
-        return template.content;
+        return template;
     }
 
     var HttpClient = function () {
@@ -34,9 +34,14 @@
         }
     }
 
-    function getContatosCliente(baseDocument) {
-        let usefullProperties = ['Código', 'Nome', 'Celular', 'E-mail'];
-        return tabularSearch(baseDocument, usefullProperties);
+    function getContatosCliente(linkCliente) {
+        let request = new HttpClient();
+        console.log("getContatosCliente: " + linkCliente);
+        request.get(linkCliente, function (resultText) {
+            let htmlResult = htmlToElement(resultText);
+            let usefullProperties = ['Código', 'Nome', 'Celular', 'E-mail', 'Membro'];
+            return tabularSearch(htmlResult, usefullProperties);
+        });
     }
 
     function getPropriedadesRecibo(linkDetalhes) {
@@ -47,7 +52,15 @@
 
     function parsePropriedadesRecibo(responseText) {
         let baseDocument = htmlToElement(responseText);
+        window.globalvar = baseDocument;
         let usefullProperties = ['Código', 'Descrição do recebimento', 'Plano de contas', 'Data do vencimento', 'Data de confirmação', 'Cliente', 'Observações'];
+        var thCliente = document.evaluate("//*/th[text()='Cliente']", baseDocument, null, XPathResult.ANY_TYPE, null).iterateNext();
+        if (thCliente) {
+            var link = thCliente.closest('tr').querySelector('a').href;
+            if (link) {
+                getContatosCliente(link);
+            }
+        }
         return tabularSearch(baseDocument, usefullProperties);
     }
 
@@ -75,6 +88,7 @@
                 }
             }
         }
+        console.log(returnJson);
         return returnJson;
     }
 
