@@ -20,48 +20,43 @@
         return template;
     }
 
-    var HttpClient = function () {
-        this.get = function (aUrl, aCallback) {
-            var anHttpRequest = new XMLHttpRequest();
-            anHttpRequest.onreadystatechange = function () {
-                if (anHttpRequest.readyState == 4 && anHttpRequest.status == 200) {
-                    aCallback(anHttpRequest.responseText);
-                }
-            }
-
-            anHttpRequest.open("GET", aUrl, true);
-            anHttpRequest.send(null);
-        }
+    const getContatosCliente = async (link) => {
+        let resultText = await fetch(link).then(ReadableStream => ReadableStream.text());
+        
+        let htmlResult = htmlToElement(resultText);
+        let usefullProperties = ['Código', 'Nome', 'Celular', 'E-mail', 'Membro'];
+        return tabularSearch(htmlResult, usefullProperties);
     }
 
-    function getContatosCliente(linkCliente) {
-        let request = new HttpClient();
-        console.log("getContatosCliente: " + linkCliente);
-        request.get(linkCliente, function (resultText) {
-            let htmlResult = htmlToElement(resultText);
-            let usefullProperties = ['Código', 'Nome', 'Celular', 'E-mail', 'Membro'];
-            window.DadosCliente = tabularSearch(htmlResult, usefullProperties);
-        });
+    const getPropriedadesRecibo = async (linkDetalhes) => {
+        let fetchResult = await fetch(linkDetalhes).then(ReadableStream => ReadableStream.text());
+
+        let JSONResultado = await parsePropriedadesRecibo(fetchResult);
+
+        return JSONResultado;
+
     }
 
-    function getPropriedadesRecibo(linkDetalhes) {
-        let request = new HttpClient();
-        console.log("GetPropriedadesRecibo: " + linkDetalhes);
-        request.get(linkDetalhes, parsePropriedadesRecibo);
-    }
 
-    function parsePropriedadesRecibo(responseText) {
+    const parsePropriedadesRecibo = async (responseText) => {
         let baseDocument = htmlToElement(responseText);
         let usefullProperties = ['Código', 'Descrição do recebimento', 'Plano de contas', 'Data do vencimento', 'Data de confirmação', 'Cliente', 'Observações'];
         let dadosRecibo = tabularSearch(baseDocument, usefullProperties);
-        window.DadosRecibo = dadosRecibo;
+        let dadosCliente;
         var thCliente = document.evaluate("//*/th[text()='Cliente']", baseDocument, null, XPathResult.ANY_TYPE, null).iterateNext();
         if (thCliente) {
             var link = thCliente.closest('tr').querySelector('a').href;
             if (link) {
-                getContatosCliente(link);
+               dadosCliente = await getContatosCliente(link);
             }
         }
+
+        let JSON = {};
+        JSON.DadosCliente = dadosCliente;
+        JSON.DadosRecibo = dadosRecibo;
+        console.log(JSON);
+        return JSON;
+
     }
 
     function tabularSearch(baseDocument, usefullProperties) {
@@ -118,7 +113,7 @@
     function createEnviarRecebimento(link) {
         var listItem = document.createElement('li');
         var anchor = document.createElement('a');
-        anchor.onclick = function () { waitRequestsResult(); getPropriedadesRecibo(link); };
+        anchor.onclick = function () { getPropriedadesRecibo(link); };
         anchor.setAttribute("data-toggle", "modal");
         anchor.setAttribute("data-target", "#enviarEmail");
         var icon = document.createElement('i');
