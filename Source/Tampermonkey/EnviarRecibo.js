@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      0.7
+// @version      0.8
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://gestaoclick.com/movimentacoes_financeiras/index_recebimento*
