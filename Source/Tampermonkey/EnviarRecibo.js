@@ -33,6 +33,8 @@
         let JSONResultado = await parsePropriedadesRecibo(fetchResult);
         let status = await getStatusRecibo(JSONResultado.DadosRecibo['Código']);
         JSONResultado.ReciboStatus = status;
+
+        preencherPopup(JSONResultado);
         return JSONResultado;
     }
 
@@ -65,7 +67,7 @@
         document.getElementById('ReciboDescricao').value = JsonDados.DadosRecibo["Descrição do recebimento"] + " - " + JsonDados.DadosRecibo["Observações"];
         document.getElementById('ReciboEmail').value = JsonDados.DadosCliente["E-mail"];
         document.getElementById('ReciboTelefone').value = JsonDados.DadosCliente.Celular;
-        document.getElementById('ReciboStatus').value = JsonDados.ReciboStatus;
+        document.getElementById('ReciboStatus').innerHTML = JsonDados.ReciboStatus;
     }
 
     const parsePropriedadesRecibo = async (responseText) => {
@@ -85,8 +87,6 @@
         JSON.DadosCliente = dadosCliente;
         JSON.DadosRecibo = dadosRecibo;
         console.log(JSON);
-
-        preencherPopup(JSON);
         return JSON;
 
     }
