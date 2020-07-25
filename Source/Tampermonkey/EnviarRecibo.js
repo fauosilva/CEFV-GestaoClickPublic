@@ -241,6 +241,10 @@
     function definirAcoesBotao() {
         var enviaNotificacaoButton = document.getElementById('BotaoEnviaNotificacao');
         enviaNotificacaoButton.onclick = function () { enviaNotificacao(true, true); };
+        var enviaEmailButton = document.getElementById('BotaoEnviaEmail');
+        enviaEmailButton.onclick = function () { enviaNotificacao(true, false); };
+        var enviaWhatsappButton = document.getElementById('BotaoEnviaWhatsapp');
+        enviaWhatsappButton.onclick = function () { enviaNotificacao(false, true); };
     }
 
     var tabelaRecebimentos = document.getElementById("recebimentos");
