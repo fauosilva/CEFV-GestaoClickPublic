@@ -1,4 +1,3 @@
-
 <div class="bootbox modal fade in" tabindex="-1" role="dialog" aria-hidden="false" id="enviarEmail">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -8,7 +7,7 @@
             </div>
             <div class="modal-body">
                 <div class="bootbox-body">
-                    <section class="content">
+                    <section class="content" style="margin-bottom: 10px; padding-bottom: 10px;">
                         <div class="box">
                             <div class="row">
                                 <div class="col-sm-12 col-lg-12 col-md-12">
@@ -23,7 +22,7 @@
                                         </div>
                                         <div class="required form-group col-sm-6 col-lg-6 col-md-6">
                                             <label for="ReciboPlano">Plano de Contas</label>
-                                            <input name="plano" maxlength="30" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboPlano" placeholder="">
+                                            <input name="plano" maxlength="30" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboPlano" placeholder="" readonly>
                                         </div>
                                         <div class="required form-group col-sm-6 col-lg-6 col-md-6">
                                             <label for="ReciboData">Data do pagamento</label>
@@ -38,8 +37,11 @@
                                             <textarea name="descricao" class="form-control" autocomplete="off" cols="30" rows="6" id="ReciboDescricao" required="required"></textarea>
                                         </div>
                                         <div class="both col-sm-12 col-lg-12 col-md-12 margin-top-10px">
-                                            <button class="btn btn-primary" type="submit"><span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via e-mail</button>
-                                            <a href="javascript:parent.bootbox.hideAll();" class="btn btn-danger"><span class="glyphicon glyphicon-remove margin-right-10px"></span>Cancelar</a>
+                                            <button class="btn btn-primary" type="submit">
+                                                <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via e-mail </button>
+                                            <a href="javascript:parent.bootbox.hideAll();" class="btn btn-danger">
+                                                <span class="glyphicon glyphicon-remove margin-right-10px"></span>Cancelar
+                                            </a>
                                         </div>
                                     </form>
                                 </div>
