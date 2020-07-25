@@ -1,3 +1,4 @@
+
 <div class="bootbox modal fade in" tabindex="-1" role="dialog" aria-hidden="false" id="enviarEmail">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -36,12 +37,31 @@
                                             <label for="ReciboDescricao">Descrição</label>
                                             <textarea name="descricao" class="form-control" autocomplete="off" cols="30" rows="6" id="ReciboDescricao" required="required"></textarea>
                                         </div>
-                                        <div class="both col-sm-12 col-lg-12 col-md-12 margin-top-10px">
+                                        <div class="col-sm-12 col-lg-12 col-md-12"> <hr> </div>
+                                        <div class="form-group col-sm-6 col-lg-6 col-md-6">
+                                            <label for="Email">E-mail</label>
+                                            <input name="plano" maxlength="30" value="" class="form-control" autocomplete="off" type="text" id="email" placeholder="" readonly>
+                                        </div>
+                                        <div class="form-group col-sm-6 col-lg-6 col-md-6">
+                                            <label for="Telefone">Número Telefone</label>
+                                            <input name="telefone" maxlength="30" value="" class="form-control" autocomplete="off" type="text" id="telefone" placeholder="" readonly>
+                                        </div>
+
+                                        <div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px">
                                             <button class="btn btn-primary" type="submit">
-                                                <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via e-mail </button>
+                                                <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar notificação
+                                            </button>
                                             <a href="javascript:parent.bootbox.hideAll();" class="btn btn-danger">
                                                 <span class="glyphicon glyphicon-remove margin-right-10px"></span>Cancelar
                                             </a>
+                                        </div>
+                                        <div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px">
+                                            <button class="btn btn-secondary float-right margin-right-10px" type="submit">
+                                                <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via e-mail
+                                            </button>
+                                            <button class="btn btn-secondary float-right margin-right-10px" type="submit">
+                                                <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via whatsapp
+                                            </button>
                                         </div>
                                     </form>
                                 </div>
