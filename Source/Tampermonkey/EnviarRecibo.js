@@ -29,6 +29,7 @@
     }
 
     const getPropriedadesRecibo = async (linkDetalhes) => {
+        limparPopup();
         let fetchResult = await fetch(linkDetalhes).then(ReadableStream => ReadableStream.text());
         let JSONResultado = await parsePropriedadesRecibo(fetchResult);
         let status = await getStatusRecibo(JSONResultado.DadosRecibo['Código']);
@@ -59,6 +60,17 @@
         return status;
     }
 
+    function limparPopup() {
+        document.getElementById('ReciboNome').value = "";
+        document.getElementById('ReciboPlano').value = "";
+        document.getElementById('ReciboData').value = "";
+        document.getElementById('ReciboValorTotal').value = "";
+        document.getElementById('ReciboDescricao').value = "";
+        document.getElementById('ReciboEmail').value = "";
+        document.getElementById('ReciboTelefone').value = "";
+        document.getElementById('ReciboStatus').innerHTML = "";
+    }
+
     function preencherPopup(JsonDados) {
         document.getElementById('ReciboNome').value = JsonDados.DadosCliente.Nome;
         document.getElementById('ReciboPlano').value = JsonDados.DadosRecibo["Plano de contas"];
@@ -87,6 +99,7 @@
         JSON.DadosCliente = dadosCliente;
         JSON.DadosRecibo = dadosRecibo;
         console.log(JSON);
+        window.DadosJson = JSON;
         return JSON;
 
     }
@@ -139,9 +152,11 @@
 
 
     function criarPopUp() {
-        let popup = htmlToElement('<div class="bootbox modal fade in" tabindex="-1" role="dialog" aria-hidden="false" id="enviarEmail"> <div class="modal-dialog modal-lg"> <div class="modal-content"> <div class="modal-header"> <button type="button" class="bootbox-close-button close" data-dismiss="modal" aria-hidden="true">×</button> <h3 class="modal-title" id="titulo">Enviar Recibo</h3> <h6 style="color: green;" id="ReciboStatus"></h6> </div><div class="modal-body"> <div class="bootbox-body"> <section class="content" style="margin-bottom: 10px; padding-bottom: 10px;"> <div class="box"> <div class="row"> <div class="col-sm-12 col-lg-12 col-md-12"> <form action="" role="form" target="imprimir-recibo" id="MovimentacoesFinanceiraImprimirReciboForm" method="post" accept-charset="utf-8" _lpchecked="1"> <div style="display:none;" wfd-invisible="true"> <input type="hidden" name="_method" value="PUT"> </div><input type="hidden" name="imprimir" value="1" autocomplete="off" id="MovimentacoesFinanceiraImprimir" wfd-invisible="true"> <div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboNome">Nome do Cliente</label> <input name="nome" maxlength="100" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboNome" placeholder=""> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboPlano">Plano de Contas</label> <input name="plano" maxlength="30" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboPlano" placeholder="" readonly> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboData">Data do pagamento</label> <input name="data" maxlength="10" value="" required="required" class="required datepicker mascara-data form-control" autocomplete="off" type="text" id="ReciboData" placeholder=""> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboValorTotal">Valor</label> <input name="valor" required="required" class="mascara-valor required form-control" autocomplete="off" type="text" value="" id="ReciboValorTotal" placeholder=""> </div><div class="col-sm-12 col-lg-12 col-md-12 required"> <label for="ReciboDescricao">Descrição</label> <textarea name="descricao" class="form-control" autocomplete="off" cols="30" rows="6" id="ReciboDescricao" required="required"></textarea> </div><div class="col-sm-12 col-lg-12 col-md-12"> <hr> </div><div class="form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboEmail">E-mail</label> <input name="plano" maxlength="30" value="" class="form-control" autocomplete="off" type="text" id="ReciboEmail" placeholder="" readonly> </div><div class="form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboTelefone">Número Telefone</label> <input name="telefone" maxlength="30" value="" class="form-control" autocomplete="off" type="text" id="ReciboTelefone" placeholder="" readonly> </div><div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px"> <button class="btn btn-primary" type="submit"> <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar notificação </button> <a href="javascript:parent.bootbox.hideAll();" class="btn btn-danger"> <span class="glyphicon glyphicon-remove margin-right-10px"></span>Cancelar </a> </div><div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px"> <button class="btn btn-secondary float-right margin-right-10px" type="submit"> <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via e-mail </button> <button class="btn btn-secondary float-right margin-right-10px" type="submit"> <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via whatsapp </button> </div></form> </div></div></div></section> </div></div></div></div></div>');
+        let popup = htmlToElement('<div class="bootbox modal fade in" tabindex="-1" role="dialog" aria-hidden="false" id="enviarEmail"> <div class="modal-dialog modal-lg"> <div class="modal-content"> <div class="modal-header"> <button type="button" class="bootbox-close-button close" data-dismiss="modal" aria-hidden="true">×</button> <h3 class="modal-title" id="titulo">Enviar Recibo</h3> <h6 style="color: green;" id="ReciboStatus"></h6> </div><div class="modal-body"> <div class="bootbox-body"> <section class="content" style="margin-bottom: 10px; padding-bottom: 10px;"> <div class="box"> <div class="row"> <div class="col-sm-12 col-lg-12 col-md-12"> <div style="display:none;" wfd-invisible="true"> <input type="hidden" name="_method" value="PUT"> </div><input type="hidden" name="imprimir" value="1" autocomplete="off" id="MovimentacoesFinanceiraImprimir" wfd-invisible="true"> <div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboNome">Nome do Cliente</label> <input name="nome" maxlength="100" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboNome" placeholder=""> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboPlano">Plano de Contas</label> <input name="plano" maxlength="30" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboPlano" placeholder="" readonly> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboData">Data do pagamento</label> <input name="data" maxlength="10" value="" required="required" class="required datepicker mascara-data form-control" autocomplete="off" type="text" id="ReciboData" placeholder=""> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboValorTotal">Valor</label> <input name="valor" required="required" class="mascara-valor required form-control" autocomplete="off" type="text" value="" id="ReciboValorTotal" placeholder=""> </div><div class="col-sm-12 col-lg-12 col-md-12 required"> <label for="ReciboDescricao">Descrição</label> <textarea name="descricao" class="form-control" autocomplete="off" cols="30" rows="6" id="ReciboDescricao" required="required"></textarea> </div><div class="col-sm-12 col-lg-12 col-md-12"> <hr> </div><div class="form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboEmail">E-mail</label> <input name="plano" maxlength="30" value="" class="form-control" autocomplete="off" type="text" id="ReciboEmail" placeholder="" readonly> </div><div class="form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboTelefone">Número Telefone</label> <input name="telefone" maxlength="30" value="" class="form-control" autocomplete="off" type="text" id="ReciboTelefone" placeholder="" readonly> </div><div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px"> <button class="btn btn-primary" id="BotaoEnviaNotificacao"> <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar notificação </button> <a href="javascript:parent.bootbox.hideAll();" class="btn btn-danger"> <span class="glyphicon glyphicon-remove margin-right-10px"></span>Cancelar </a> </div><div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px"> <button class="btn btn-secondary float-right margin-right-10px" id="BotaoEnviaEmail"> <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via e-mail </button> <button class="btn btn-secondary float-right margin-right-10px" id="BotaoEnviaWhatsapp"> <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via whatsapp </button> </div></div></div></div></section> </div></div></div></div></div>');
         return popup;
     }
+
+
     function createEnviarRecebimento(link) {
         var listItem = document.createElement('li');
         var anchor = document.createElement('a');
@@ -162,10 +177,79 @@
         item.appendChild(createEnviarRecebimento(linkDetalhesTransacao));
     }
 
+
+
+
+
+    const getProximoNumeroRecibo = async () => {
+        const proximoNumeroRecibo = await fetch('https://gestaointegration.azurewebsites.net/api/recibo/proximo').then((response) => {
+
+            const proximoRecibo = response.json().then((data) => {
+                return {
+                    NumeroRecibo: data.numeroRecibo,
+                    Ano: data.anoRecibo
+                };
+            });
+
+            return proximoRecibo;
+        });
+
+        return proximoNumeroRecibo;
+    }
+
+
+    const enviaNotificacao = async (enviaEmail, enviaWhatsapp) => {
+        const objetoRequest = {};
+
+        const proximoNumeroRecibo = await getProximoNumeroRecibo();
+
+
+        objetoRequest.DadosNotificacaoRecibo = {
+            Numero: proximoNumeroRecibo.NumeroRecibo,
+            Ano: proximoNumeroRecibo.Ano,
+            PlanoDeContas: document.getElementById('ReciboPlano').value,
+            Valor: document.getElementById('ReciboValorTotal').value,
+            Data: document.getElementById('ReciboData').value,
+            Descricao: document.getElementById('ReciboDescricao').value,
+            Nome: document.getElementById('ReciboNome').value,
+            Email: enviaEmail,
+            WhatsApp: enviaWhatsapp
+        }
+
+        objetoRequest.DadosCliente = window.DadosJson.DadosCliente;
+        objetoRequest.DadosRecibo = window.DadosJson.DadosRecibo;
+
+
+        const rawResponse = await fetch('https://gestaointegration.azurewebsites.net/api/recibo', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(objetoRequest)
+        }).then((response) => {
+
+            if (response.ok) {
+                document.getElementById('ReciboStatus').innerHTML = `Recibo ${objetoRequest.DadosNotificacaoRecibo.Numero}/${objetoRequest.DadosNotificacaoRecibo.Ano} enviado em ${objetoRequest.DadosNotificacaoRecibo.Data}`;
+            }
+            else {
+                document.getElementById('ReciboStatus').innerHTML = 'Erro ao enviar recibo';
+            }
+        });
+    }
+
+    function definirAcoesBotao() {
+        var enviaNotificacaoButton = document.getElementById('BotaoEnviaNotificacao');
+        enviaNotificacaoButton.onclick = function () { enviaNotificacao(true, true); };
+    }
+
     var tabelaRecebimentos = document.getElementById("recebimentos");
     var menuSuspenso = tabelaRecebimentos.getElementsByClassName("dropdown-menu");
     var popup = criarPopUp();
     document.body.append(popup);
+
+    definirAcoesBotao();
+
     for (var i = 0; i < menuSuspenso.length; i++) {
         //Verifica se o pagamento está na situação confirmado pelo seletor de classe de sucesso
         if (menuSuspenso[i].closest('tr').querySelector('.label-success')) {
