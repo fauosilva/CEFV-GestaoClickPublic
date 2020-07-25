@@ -1,35 +1,53 @@
 
-<div class="bootbox modal fade in" tabindex="-1" role="dialog" aria-hidden="false" id="enviarEmail"> 
-<div class="modal-dialog modal-lg"> 
-<div class="modal-content"> 
-<div class="modal-header">
-<button type="button" class="bootbox-close-button close" data-dismiss="modal" aria-hidden="true">×</button> 
-<h3 class="modal-title">Enviar Recibo</h3> </div>
-<div class="modal-body"> 
-<div class="bootbox-body"> 
-<section class="content"> 
-<div class="box"> 
-<div class="row"> 
-<div class="col-sm-12 col-lg-12 col-md-12"> 
-<form action="" role="form" target="imprimir-recibo" id="MovimentacoesFinanceiraImprimirReciboForm" method="post" accept-charset="utf-8" _lpchecked="1"> 
-<div style="display:none;" wfd-invisible="true">
-<input type="hidden" name="_method" value="PUT"></div>
-<input type="hidden" name="imprimir" value="1" autocomplete="off" id="MovimentacoesFinanceiraImprimir" wfd-invisible="true"> 
-<div class="required form-group col-sm-6 col-lg-6 col-md-6">
-<label for="ReciboNome">Nome do Cliente</label>
-<input name="nome" maxlength="100" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboNome" placeholder=""> </div>
-<div class="required form-group col-sm-6 col-lg-6 col-md-6">
-<label for="ReciboPlano">Plano de Contas</label>
-<input name="plano" maxlength="30" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboPlano" placeholder=""> </div>
-<div class="required form-group col-sm-6 col-lg-6 col-md-6">
-<label for="ReciboData">Data do pagamento</label>
-<input name="data" maxlength="10" value="" required="required" class="required datepicker mascara-data form-control" autocomplete="off" type="text" id="ReciboData" placeholder=""></div>
-<div class="required form-group col-sm-6 col-lg-6 col-md-6">
-<label for="ReciboValorTotal">Valor</label>
-<input name="valor" required="required" class="mascara-valor required form-control" autocomplete="off" type="text" value="" id="ReciboValorTotal" placeholder=""> </div>
-<div class="col-sm-12 col-lg-12 col-md-12 required">
-<label for="ReciboDescricao">Descrição</label>
-<textarea name="descricao" class="form-control" autocomplete="off" cols="30" rows="6" id="ReciboDescricao" required="required"></textarea></div>
-<div class="both col-sm-12 col-lg-12 col-md-12 margin-top-10px"> 
-<button class="btn btn-primary" type="submit"><span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via e-mail</button>
-<a href="javascript:parent.bootbox.hideAll();" class="btn btn-danger"><span class="glyphicon glyphicon-remove margin-right-10px"></span>Cancelar</a> </div></form> </div></div></div></section> </div></div></div></div></div>
+<div class="bootbox modal fade in" tabindex="-1" role="dialog" aria-hidden="false" id="enviarEmail">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="bootbox-close-button close" data-dismiss="modal" aria-hidden="true">Ã—</button>
+                <h3 class="modal-title">Enviar Recibo</h3>
+            </div>
+            <div class="modal-body">
+                <div class="bootbox-body">
+                    <section class="content">
+                        <div class="box">
+                            <div class="row">
+                                <div class="col-sm-12 col-lg-12 col-md-12">
+                                    <form action="" role="form" target="imprimir-recibo" id="MovimentacoesFinanceiraImprimirReciboForm" method="post" accept-charset="utf-8" _lpchecked="1">
+                                        <div style="display:none;" wfd-invisible="true">
+                                            <input type="hidden" name="_method" value="PUT">
+                                        </div>
+                                        <input type="hidden" name="imprimir" value="1" autocomplete="off" id="MovimentacoesFinanceiraImprimir" wfd-invisible="true">
+                                        <div class="required form-group col-sm-6 col-lg-6 col-md-6">
+                                            <label for="ReciboNome">Nome do Cliente</label>
+                                            <input name="nome" maxlength="100" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboNome" placeholder="">
+                                        </div>
+                                        <div class="required form-group col-sm-6 col-lg-6 col-md-6">
+                                            <label for="ReciboPlano">Plano de Contas</label>
+                                            <input name="plano" maxlength="30" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboPlano" placeholder="">
+                                        </div>
+                                        <div class="required form-group col-sm-6 col-lg-6 col-md-6">
+                                            <label for="ReciboData">Data do pagamento</label>
+                                            <input name="data" maxlength="10" value="" required="required" class="required datepicker mascara-data form-control" autocomplete="off" type="text" id="ReciboData" placeholder="">
+                                        </div>
+                                        <div class="required form-group col-sm-6 col-lg-6 col-md-6">
+                                            <label for="ReciboValorTotal">Valor</label>
+                                            <input name="valor" required="required" class="mascara-valor required form-control" autocomplete="off" type="text" value="" id="ReciboValorTotal" placeholder="">
+                                        </div>
+                                        <div class="col-sm-12 col-lg-12 col-md-12 required">
+                                            <label for="ReciboDescricao">DescriÃ§Ã£o</label>
+                                            <textarea name="descricao" class="form-control" autocomplete="off" cols="30" rows="6" id="ReciboDescricao" required="required"></textarea>
+                                        </div>
+                                        <div class="both col-sm-12 col-lg-12 col-md-12 margin-top-10px">
+                                            <button class="btn btn-primary" type="submit"><span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via e-mail</button>
+                                            <a href="javascript:parent.bootbox.hideAll();" class="btn btn-danger"><span class="glyphicon glyphicon-remove margin-right-10px"></span>Cancelar</a>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
