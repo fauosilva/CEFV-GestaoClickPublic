@@ -1,14 +1,38 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://gestaoclick.com/movimentacoes_financeiras/index_recebimento*
 // @updateURL    https://raw.githubusercontent.com/fauosilva/CEFV-GestaoClickPublic/master/Source/Tampermonkey/EnviarRecibo.js
 // @downloadURL  https://raw.githubusercontent.com/fauosilva/CEFV-GestaoClickPublic/master/Source/Tampermonkey/EnviarRecibo.js
-// @grant        none
+// @grant    GM_addStyle
 // ==/UserScript==
+
+GM_addStyle(`
+  .loader-violeta {
+  border: 10px solid #f3f3f3;
+  border-radius: 50%;
+  border-top: 10px solid #993399;
+  width: 30px;
+  height: 30px;
+  -webkit-animation: spinvioleta 2s linear infinite; /* Safari */
+  animation: spinvioleta 2s linear infinite;
+  display: inline-flex;
+}
+
+/* Safari */
+@-webkit-keyframes spinvioleta {
+  0% { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spinvioleta {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+` );
 
 (function () {
     'use strict';
@@ -18,6 +42,19 @@
         html = html.trim(); // Never return a text node of whitespace as the result
         template.innerHTML = html;
         return template;
+    }
+
+    function toggleLoader(show) {
+        var loader = document.getElementsByClassName("loader-violeta")[0];
+        if (show) {
+            loader.classList.remove('hidden');
+        } else {
+            loader.classList.add('hidden');
+        }
+    }
+
+    function addMinutes(date, minutes) {
+        return new Date(date.getTime() + minutes * 60000);
     }
 
     const getContatosCliente = async (link) => {
@@ -42,10 +79,11 @@
     const getStatusRecibo = async (codigo) => {
         const apiUrl = `https://gestaointegration.azurewebsites.net/api/recibo/${codigo}`;
 
+        toggleLoader(true);
         const status = await fetch(apiUrl).then(function (response) {
             if (response.ok) {
                 const currentStatus = response.json().then((data) => {
-                    const dataRecibo = new Date(data.dataRecibo).toLocaleDateString();
+                    const dataRecibo = addMinutes(new Date(data.dataRecibo),240).toLocaleDateString();
                     return `Recibo ${data.numeroRecibo}/${data.anoRecibo} enviado em ${dataRecibo}`;
                 });
                 return currentStatus;
@@ -55,7 +93,8 @@
         })
             .catch(function (error) {
                 console.log('There has been a problem with your fetch operation: ' + error.message);
-            });
+            })
+            .finally(() => { toggleLoader(false) });
 
         return status;
     }
@@ -137,25 +176,10 @@
         return visualizarAction.href;
     }
 
-
-
-    function waitRequestsResult() {
-        window.DadosRecibo = null;
-        window.DadosCliente = null;
-        let interval = setInterval(function () {
-            if (window.DadosRecibo && window.DadosCliente) {
-                clearInterval(interval);
-            }
-        }, 500);
-
-    }
-
-
     function criarPopUp() {
-        let popup = htmlToElement('<div class="bootbox modal fade in" tabindex="-1" role="dialog" aria-hidden="false" id="enviarEmail"> <div class="modal-dialog modal-lg"> <div class="modal-content"> <div class="modal-header"> <button type="button" class="bootbox-close-button close" data-dismiss="modal" aria-hidden="true">×</button> <h3 class="modal-title" id="titulo">Enviar Recibo</h3> <h6 style="color: green;" id="ReciboStatus"></h6> </div><div class="modal-body"> <div class="bootbox-body"> <section class="content" style="margin-bottom: 10px; padding-bottom: 10px;"> <div class="box"> <div class="row"> <div class="col-sm-12 col-lg-12 col-md-12"> <div style="display:none;" wfd-invisible="true"> <input type="hidden" name="_method" value="PUT"> </div><input type="hidden" name="imprimir" value="1" autocomplete="off" id="MovimentacoesFinanceiraImprimir" wfd-invisible="true"> <div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboNome">Nome do Cliente</label> <input name="nome" maxlength="100" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboNome" placeholder=""> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboPlano">Plano de Contas</label> <input name="plano" maxlength="30" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboPlano" placeholder="" readonly> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboData">Data do pagamento</label> <input name="data" maxlength="10" value="" required="required" class="required datepicker mascara-data form-control" autocomplete="off" type="text" id="ReciboData" placeholder=""> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboValorTotal">Valor</label> <input name="valor" required="required" class="mascara-valor required form-control" autocomplete="off" type="text" value="" id="ReciboValorTotal" placeholder=""> </div><div class="col-sm-12 col-lg-12 col-md-12 required"> <label for="ReciboDescricao">Descrição</label> <textarea name="descricao" class="form-control" autocomplete="off" cols="30" rows="6" id="ReciboDescricao" required="required"></textarea> </div><div class="col-sm-12 col-lg-12 col-md-12"> <hr> </div><div class="form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboEmail">E-mail</label> <input name="plano" maxlength="30" value="" class="form-control" autocomplete="off" type="text" id="ReciboEmail" placeholder="" readonly> </div><div class="form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboTelefone">Número Telefone</label> <input name="telefone" maxlength="30" value="" class="form-control" autocomplete="off" type="text" id="ReciboTelefone" placeholder="" readonly> </div><div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px"> <button class="btn btn-primary" id="BotaoEnviaNotificacao"> <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar notificação </button> <a href="javascript:parent.bootbox.hideAll();" class="btn btn-danger"> <span class="glyphicon glyphicon-remove margin-right-10px"></span>Cancelar </a> </div><div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px"> <button class="btn btn-secondary float-right margin-right-10px" id="BotaoEnviaEmail"> <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via e-mail </button> <button class="btn btn-secondary float-right margin-right-10px" id="BotaoEnviaWhatsapp"> <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via whatsapp </button> </div></div></div></div></section> </div></div></div></div></div>');
+        let popup = htmlToElement('<div class="bootbox modal fade in" tabindex="-1" role="dialog" aria-hidden="false" id="enviarEmail"> <div class="modal-dialog modal-lg"> <div class="modal-content"> <div class="modal-header"> <button type="button" class="bootbox-close-button close" data-dismiss="modal" aria-hidden="true">×</button> <h3 class="modal-title" style="display:inline;" id="titulo">Enviar Recibo</h3> <div class="loader-violeta" style="display:inline-flex; margin-top:5px; margin-left:5px;"></div><h6 style="color: green;" id="ReciboStatus"></h6> </div><div class="modal-body"> <div class="bootbox-body"> <section class="content" style="margin-bottom: 10px; padding-bottom: 10px;"> <div class="box"> <div class="row"> <div class="col-sm-12 col-lg-12 col-md-12"> <div style="display:none;" wfd-invisible="true"> <input type="hidden" name="_method" value="PUT"> </div><input type="hidden" name="imprimir" value="1" autocomplete="off" id="MovimentacoesFinanceiraImprimir" wfd-invisible="true"> <div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboNome">Nome do Cliente</label> <input name="nome" maxlength="100" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboNome" placeholder=""> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboPlano">Plano de Contas</label> <input name="plano" maxlength="30" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboPlano" placeholder="" readonly> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboData">Data do pagamento</label> <input name="data" maxlength="10" value="" required="required" class="required datepicker mascara-data form-control" autocomplete="off" type="text" id="ReciboData" placeholder=""> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboValorTotal">Valor</label> <input name="valor" required="required" class="mascara-valor required form-control" autocomplete="off" type="text" value="" id="ReciboValorTotal" placeholder=""> </div><div class="col-sm-12 col-lg-12 col-md-12 required"> <label for="ReciboDescricao">Descrição</label> <textarea name="descricao" class="form-control" autocomplete="off" cols="30" rows="6" id="ReciboDescricao" required="required"></textarea> </div><div class="col-sm-12 col-lg-12 col-md-12"> <hr> </div><div class="form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboEmail">E-mail</label> <input name="plano" maxlength="30" value="" class="form-control" autocomplete="off" type="text" id="ReciboEmail" placeholder="" readonly> </div><div class="form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboTelefone">Número Telefone</label> <input name="telefone" maxlength="30" value="" class="form-control" autocomplete="off" type="text" id="ReciboTelefone" placeholder="" readonly> </div><div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px"> <button class="btn btn-primary" id="BotaoEnviaNotificacao"> <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar notificação </button> <a href="javascript:parent.bootbox.hideAll();" class="btn btn-danger"> <span class="glyphicon glyphicon-remove margin-right-10px"></span>Cancelar </a> </div><div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px"> <button class="btn btn-secondary float-right margin-right-10px" id="BotaoEnviaEmail"> <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via e-mail </button> <button class="btn btn-secondary float-right margin-right-10px" id="BotaoEnviaWhatsapp"> <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via whatsapp </button> </div></div></div></div></section> </div></div></div></div></div>');
         return popup;
     }
-
 
     function createEnviarRecebimento(link) {
         var listItem = document.createElement('li');
@@ -177,23 +201,16 @@
         item.appendChild(createEnviarRecebimento(linkDetalhesTransacao));
     }
 
-
-
-
-
     const getProximoNumeroRecibo = async () => {
         const proximoNumeroRecibo = await fetch('https://gestaointegration.azurewebsites.net/api/recibo/proximo').then((response) => {
-
             const proximoRecibo = response.json().then((data) => {
                 return {
                     NumeroRecibo: data.numeroRecibo,
                     Ano: data.anoRecibo
                 };
             });
-
             return proximoRecibo;
         });
-
         return proximoNumeroRecibo;
     }
 
@@ -201,9 +218,8 @@
     const enviaNotificacao = async (enviaEmail, enviaWhatsapp) => {
         const objetoRequest = {};
 
+        toggleLoader(true);
         const proximoNumeroRecibo = await getProximoNumeroRecibo();
-
-
         objetoRequest.DadosNotificacaoRecibo = {
             Numero: proximoNumeroRecibo.NumeroRecibo,
             Ano: proximoNumeroRecibo.Ano,
@@ -235,7 +251,7 @@
             else {
                 document.getElementById('ReciboStatus').innerHTML = 'Erro ao enviar recibo';
             }
-        });
+        }).finally(() => { toggleLoader(false) });
     }
 
     function definirAcoesBotao() {
