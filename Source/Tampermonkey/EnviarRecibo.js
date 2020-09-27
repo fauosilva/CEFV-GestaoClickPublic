@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://gestaoclick.com/movimentacoes_financeiras/index_recebimento*
@@ -69,10 +69,15 @@ GM_addStyle(`
         limparPopup();
         let fetchResult = await fetch(linkDetalhes).then(ReadableStream => ReadableStream.text());
         let JSONResultado = await parsePropriedadesRecibo(fetchResult);
-        let status = await getStatusRecibo(JSONResultado.DadosRecibo['Código']);
-        JSONResultado.ReciboStatus = status;
+        let recibo = await getStatusRecibo(JSONResultado.DadosRecibo['Código']);
+        JSONResultado.ReciboDetails = recibo;
 
-        preencherPopup(JSONResultado);
+        if (JSONResultado.ReciboDetails != null) {
+            preencherDadosReciboEnviado(JSONResultado.ReciboDetails);
+        } else {
+            preencherPopup(JSONResultado);
+        }
+
         return JSONResultado;
     }
 
@@ -83,12 +88,13 @@ GM_addStyle(`
         const status = await fetch(apiUrl).then(function (response) {
             if (response.ok) {
                 const currentStatus = response.json().then((data) => {
-                    const dataRecibo = addMinutes(new Date(data.dataRecibo),240).toLocaleDateString();
-                    return `Recibo ${data.numeroRecibo}/${data.anoRecibo} enviado em ${dataRecibo}`;
+                    const dataRecibo = addMinutes(new Date(data.dataRecibo), 240).toLocaleDateString();
+                    data.ReciboStatus = `Recibo ${data.numeroRecibo}/${data.anoRecibo} enviado em ${dataRecibo}`
+                    return data;
                 });
                 return currentStatus;
             } else {
-                return '';
+                return null;
             }
         })
             .catch(function (error) {
@@ -110,6 +116,17 @@ GM_addStyle(`
         document.getElementById('ReciboStatus').innerHTML = "";
     }
 
+    function preencherDadosReciboEnviado(ReciboEnviado) {
+        document.getElementById('ReciboNome').value = ReciboEnviado.nome;
+        document.getElementById('ReciboPlano').value = ReciboEnviado.planoDeContas;
+        document.getElementById('ReciboData').value = addMinutes(new Date(ReciboEnviado.dataRecibo), 240).toLocaleDateString();
+        document.getElementById('ReciboValorTotal').value = ReciboEnviado.valor;
+        document.getElementById('ReciboDescricao').value = ReciboEnviado.descricao;
+        document.getElementById('ReciboEmail').value = ReciboEnviado.requestDetails.clienteRequest.email;
+        document.getElementById('ReciboTelefone').value = ReciboEnviado.requestDetails.clienteRequest.celular;
+        document.getElementById('ReciboStatus').innerHTML = ReciboEnviado.ReciboStatus;
+    }
+    
     function preencherPopup(JsonDados) {
         document.getElementById('ReciboNome').value = JsonDados.DadosCliente.Nome;
         document.getElementById('ReciboPlano').value = JsonDados.DadosRecibo["Plano de contas"];
@@ -118,7 +135,9 @@ GM_addStyle(`
         document.getElementById('ReciboDescricao').value = JsonDados.DadosRecibo["Descrição do recebimento"] + " - " + JsonDados.DadosRecibo["Observações"];
         document.getElementById('ReciboEmail').value = JsonDados.DadosCliente["E-mail"];
         document.getElementById('ReciboTelefone').value = JsonDados.DadosCliente.Celular;
-        document.getElementById('ReciboStatus').innerHTML = JsonDados.ReciboStatus;
+        if (JsonDados.ReciboDetails != null && JsonDados.ReciboDetails.ReciboStatus != null) {
+            document.getElementById('ReciboStatus').innerHTML = JsonDados.ReciboDetails.ReciboStatus;
+        }
     }
 
     const parsePropriedadesRecibo = async (responseText) => {
@@ -183,6 +202,7 @@ GM_addStyle(`
 
     function createEnviarRecebimento(link) {
         var listItem = document.createElement('li');
+        listItem.style = "cursor: pointer;";
         var anchor = document.createElement('a');
         anchor.onclick = function () { getPropriedadesRecibo(link); };
         anchor.setAttribute("data-toggle", "modal");
@@ -249,7 +269,7 @@ GM_addStyle(`
                 document.getElementById('ReciboStatus').innerHTML = `Recibo ${objetoRequest.DadosNotificacaoRecibo.Numero}/${objetoRequest.DadosNotificacaoRecibo.Ano} enviado em ${objetoRequest.DadosNotificacaoRecibo.Data}`;
             }
             else {
-                document.getElementById('ReciboStatus').innerHTML = 'Erro ao enviar recibo';
+                document.getElementById('ReciboStatus').innerHTML = 'Erro ao enviar recibo.';
             }
         }).finally(() => { toggleLoader(false) });
     }
