@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      1.3
+// @version      1.4
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://gestaoclick.com/movimentacoes_financeiras/index_recebimento*
@@ -247,8 +247,8 @@ GM_addStyle(`
 
         toggleLoader(true);
         objetoRequest.DadosNotificacaoRecibo = {
-            Numero: document.getElementById('ReciboNumero').value,
-            Ano: document.getElementById('ReciboAno').value,
+            Numero: parseInt(document.getElementById('ReciboNumero').value, 10),
+            Ano: parseInt(document.getElementById('ReciboAno').value, 10),
             PlanoDeContas: document.getElementById('ReciboPlano').value,
             Valor: document.getElementById('ReciboValorTotal').value,
             Data: document.getElementById('ReciboData').value,
