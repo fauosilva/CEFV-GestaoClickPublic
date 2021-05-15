@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      1.5
+// @version      1.6
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://gestaoclick.com/movimentacoes_financeiras/index_recebimento*
@@ -116,6 +116,8 @@ GM_addStyle(`
         document.getElementById('ReciboEmail').value = "";
         document.getElementById('ReciboTelefone').value = "";
         document.getElementById('ReciboStatus').innerHTML = "";
+
+        toggleBotoes(true, true);
     }
 
     function preencherDadosReciboEnviado(ReciboEnviado) {
@@ -129,8 +131,10 @@ GM_addStyle(`
         document.getElementById('ReciboEmail').value = ReciboEnviado.requestDetails.clienteRequest.email;
         document.getElementById('ReciboTelefone').value = ReciboEnviado.requestDetails.clienteRequest.celular;
         document.getElementById('ReciboStatus').innerHTML = ReciboEnviado.ReciboStatus;
+
+        toggleBotoes(ReciboEnviado.requestDetails.clienteRequest.email != null, ReciboEnviado.requestDetails.clienteRequest.celular != null);
     }
-    
+
     async function preencherPopup(JsonDados) {
         const proximoNumeroRecibo = await getProximoNumeroRecibo();
         document.getElementById('ReciboNumero').value = proximoNumeroRecibo.NumeroRecibo;
@@ -140,14 +144,16 @@ GM_addStyle(`
         document.getElementById('ReciboData').value = JsonDados.DadosRecibo["Data de confirmação"];
         document.getElementById('ReciboValorTotal').value = JsonDados.DadosRecibo["Valor total"];
         document.getElementById('ReciboDescricao').value = JsonDados.DadosRecibo["Descrição do recebimento"];
-        if(JsonDados.DadosRecibo["Observações"] != null) {
-                document.getElementById('ReciboDescricao').value = document.getElementById('ReciboDescricao').value + " - " + JsonDados.DadosRecibo["Observações"];
+        if (JsonDados.DadosRecibo["Observações"] != null) {
+            document.getElementById('ReciboDescricao').value = document.getElementById('ReciboDescricao').value + " - " + JsonDados.DadosRecibo["Observações"];
         }
         document.getElementById('ReciboEmail').value = JsonDados.DadosCliente["E-mail"];
         document.getElementById('ReciboTelefone').value = JsonDados.DadosCliente.Celular;
         if (JsonDados.ReciboDetails != null && JsonDados.ReciboDetails.ReciboStatus != null) {
             document.getElementById('ReciboStatus').innerHTML = JsonDados.ReciboDetails.ReciboStatus;
         }
+
+        toggleBotoes(JsonDados.DadosCliente["E-mail"] != null, JsonDados.DadosCliente.Celular != null);
     }
 
     const parsePropriedadesRecibo = async (responseText) => {
@@ -292,6 +298,37 @@ GM_addStyle(`
         var enviaWhatsappButton = document.getElementById('BotaoEnviaWhatsapp');
         enviaWhatsappButton.onclick = function () { enviaNotificacao(false, true); };
     }
+
+    function toggleBotoes(enviaEmailEnabled, enviaWhatsappEnabled) {
+        var enviaNotificacaoEnabled = true;
+        if (enviaEmailEnabled == false && enviaWhatsappEnabled == false) {
+            enviaNotificacaoEnabled = false;
+        }
+
+        var enviaNotificacaoButton = document.getElementById('BotaoEnviaNotificacao');
+        if (!enviaNotificacaoEnabled) {
+            enviaNotificacaoButton.style.display = "none";
+        }
+        else {
+            enviaNotificacaoButton.style.display = "initial";
+        }
+        var enviaEmailButton = document.getElementById('BotaoEnviaEmail');
+        if (!enviaEmailEnabled) {
+            enviaEmailButton.style.display = "none";
+        }
+        else {
+            enviaEmailButton.style.display = "initial";
+        }
+        var enviaWhatsappButton = document.getElementById('BotaoEnviaWhatsapp');
+        if (!enviaWhatsappEnabled) {
+            enviaWhatsappButton.style.display = "none";
+        }
+        else {
+            enviaWhatsappButton.style.display = "initial";
+        }
+    }
+
+
 
     var tabelaRecebimentos = document.getElementById("recebimentos");
     var menuSuspenso = tabelaRecebimentos.getElementsByClassName("dropdown-menu");
