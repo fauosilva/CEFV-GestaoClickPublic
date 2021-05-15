@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      1.4
+// @version      1.5
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://gestaoclick.com/movimentacoes_financeiras/index_recebimento*
@@ -139,7 +139,10 @@ GM_addStyle(`
         document.getElementById('ReciboPlano').value = JsonDados.DadosRecibo["Plano de contas"];
         document.getElementById('ReciboData').value = JsonDados.DadosRecibo["Data de confirmação"];
         document.getElementById('ReciboValorTotal').value = JsonDados.DadosRecibo["Valor total"];
-        document.getElementById('ReciboDescricao').value = JsonDados.DadosRecibo["Descrição do recebimento"] + " - " + JsonDados.DadosRecibo["Observações"];
+        document.getElementById('ReciboDescricao').value = JsonDados.DadosRecibo["Descrição do recebimento"];
+        if(JsonDados.DadosRecibo["Observações"] != null) {
+                document.getElementById('ReciboDescricao').value = document.getElementById('ReciboDescricao').value + " - " + JsonDados.DadosRecibo["Observações"];
+        }
         document.getElementById('ReciboEmail').value = JsonDados.DadosCliente["E-mail"];
         document.getElementById('ReciboTelefone').value = JsonDados.DadosCliente.Celular;
         if (JsonDados.ReciboDetails != null && JsonDados.ReciboDetails.ReciboStatus != null) {
