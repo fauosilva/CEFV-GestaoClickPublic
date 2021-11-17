@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      1.6
+// @version      1.7
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://gestaoclick.com/movimentacoes_financeiras/index_recebimento*
@@ -36,6 +36,8 @@ GM_addStyle(`
 
 (function () {
     'use strict';
+
+    const localeBr = new Intl.Locale("pt-BR");
 
     function htmlToElement(html) {
         var template = document.createElement('div');
@@ -87,8 +89,8 @@ GM_addStyle(`
         toggleLoader(true);
         const status = await fetch(apiUrl).then(function (response) {
             if (response.ok) {
-                const currentStatus = response.json().then((data) => {
-                    const dataRecibo = addMinutes(new Date(data.dataRecibo), 240).toLocaleDateString();
+                const currentStatus = response.json().then((data) => {                    
+                    const dataRecibo = addMinutes(new Date(data.dataRecibo), 240).toLocaleDateString(localeBr);
                     data.ReciboStatus = `Recibo ${data.numeroRecibo}/${data.anoRecibo} enviado em ${dataRecibo}`
                     return data;
                 });
@@ -125,7 +127,7 @@ GM_addStyle(`
         document.getElementById('ReciboAno').value = ReciboEnviado.anoRecibo;
         document.getElementById('ReciboNome').value = ReciboEnviado.nome;
         document.getElementById('ReciboPlano').value = ReciboEnviado.planoDeContas;
-        document.getElementById('ReciboData').value = addMinutes(new Date(ReciboEnviado.dataRecibo), 240).toLocaleDateString();
+        document.getElementById('ReciboData').value = addMinutes(new Date(ReciboEnviado.dataRecibo), 240).toLocaleDateString(localeBr);
         document.getElementById('ReciboValorTotal').value = ReciboEnviado.valor;
         document.getElementById('ReciboDescricao').value = ReciboEnviado.descricao;
         document.getElementById('ReciboEmail').value = ReciboEnviado.requestDetails.clienteRequest.email;
