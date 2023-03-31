@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      1.9
+// @version      2.0
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
-// @match        https://erp.gestaoclick.com/movimentacoes_financeiras/index_recebimento*
+// @match        https://*.gestaoclick.com/movimentacoes_financeiras/index_recebimento*
 // @updateURL    https://raw.githubusercontent.com/fauosilva/CEFV-GestaoClickPublic/master/Source/Tampermonkey/EnviarRecibo.js
 // @downloadURL  https://raw.githubusercontent.com/fauosilva/CEFV-GestaoClickPublic/master/Source/Tampermonkey/EnviarRecibo.js
+// @run-at document-idle
 // @grant    GM_addStyle
 // ==/UserScript==
 
@@ -89,7 +90,7 @@ GM_addStyle(`
         toggleLoader(true);
         const status = await fetch(apiUrl).then(function (response) {
             if (response.ok) {
-                const currentStatus = response.json().then((data) => {                    
+                const currentStatus = response.json().then((data) => {
                     const dataRecibo = addMinutes(new Date(data.dataRecibo), 240).toLocaleDateString(localeBr);
                     data.ReciboStatus = `Recibo ${data.numeroRecibo}/${data.anoRecibo} enviado em ${dataRecibo}`
                     return data;
@@ -330,20 +331,32 @@ GM_addStyle(`
         }
     }
 
+    function getRecebimentosTable(){
+        let retries = 50;
 
+        const intervalID = setInterval(_ => {
+            const tabelaRecebimentos = document.getElementsByTagName("table");
+            if(tabelaRecebimentos != null && tabelaRecebimentos.length > 0 ){
+                console.log("Encontrada tabela principal");
+                var menuSuspenso = tabelaRecebimentos[0].getElementsByClassName("dropdown-menu");
+                var popup = criarPopUp();
+                document.body.append(popup);
 
-    
-    var tabelaRecebimentos = document.getElementById("recebimentos");
-    var menuSuspenso = tabelaRecebimentos.getElementsByClassName("dropdown-menu");
-    var popup = criarPopUp();
-    document.body.append(popup);
+                definirAcoesBotao();
 
-    definirAcoesBotao();
-
-    for (var i = 0; i < menuSuspenso.length; i++) {
-        //Verifica se o pagamento está na situação confirmado pelo seletor de classe de sucesso
-        if (menuSuspenso[i].closest('tr').querySelector('.label-success')) {
-            inserirEnviarRecebimento(menuSuspenso[i], i);
-        }
+                for (var i = 0; i < menuSuspenso.length; i++) {
+                    //Verifica se o pagamento está na situação confirmado pelo seletor de classe de sucesso
+                    if (menuSuspenso[i].closest('tr').querySelector('.label-success') || menuSuspenso[i].closest('tr').querySelector('.badge-success')) {
+                        inserirEnviarRecebimento(menuSuspenso[i], i);
+                    }
+                }
+            }
+            retries--;
+            if(retries == 0 || (tabelaRecebimentos != null && tabelaRecebimentos.length > 0 )) clearInterval(intervalID);
+        }, 100);
     }
+
+    //var tabelaRecebimentos = document.getElementById("recebimentos");
+    //var tabelaRecebimentos = document.getElementsByTagName("table");
+    getRecebimentosTable();
 })();
