@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      2.0
+// @version      2.1
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://*.gestaoclick.com/movimentacoes_financeiras/index_recebimento*
@@ -38,17 +38,26 @@ GM_addStyle(`
 (function () {
     'use strict';
 
+    const getSettings = {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'ApiKey': 'fraternidade'
+        }
+    };
+
     const localeBr = new Intl.Locale("pt-BR");
 
     function htmlToElement(html) {
-        var template = document.createElement('div');
+        let template = document.createElement('div');
         html = html.trim(); // Never return a text node of whitespace as the result
         template.innerHTML = html;
         return template;
     }
 
     function toggleLoader(show) {
-        var loader = document.getElementsByClassName("loader-violeta")[0];
+        let loader = document.getElementsByClassName("loader-violeta")[0];
         if (show) {
             loader.classList.remove('hidden');
         } else {
@@ -88,7 +97,7 @@ GM_addStyle(`
         const apiUrl = `https://gestaointegration.azurewebsites.net/api/recibo/${codigo}`;
 
         toggleLoader(true);
-        const status = await fetch(apiUrl).then(function (response) {
+        const status = await fetch(apiUrl, getSettings).then(function (response) {
             if (response.ok) {
                 const currentStatus = response.json().then((data) => {
                     const dataRecibo = addMinutes(new Date(data.dataRecibo), 240).toLocaleDateString(localeBr);
@@ -109,6 +118,7 @@ GM_addStyle(`
     }
 
     function limparPopup() {
+        document.getElementById('TipoRecibo').value = 0;
         document.getElementById('ReciboNumero').value = "";
         document.getElementById('ReciboAno').value = "";
         document.getElementById('ReciboNome').value = "";
@@ -119,11 +129,12 @@ GM_addStyle(`
         document.getElementById('ReciboEmail').value = "";
         document.getElementById('ReciboTelefone').value = "";
         document.getElementById('ReciboStatus').innerHTML = "";
-
+        
         toggleBotoes(true, true);
     }
 
     function preencherDadosReciboEnviado(ReciboEnviado) {
+        document.getElementById('TipoRecibo').value = ReciboEnviado.emailTemplate;
         document.getElementById('ReciboNumero').value = ReciboEnviado.numeroRecibo;
         document.getElementById('ReciboAno').value = ReciboEnviado.anoRecibo;
         document.getElementById('ReciboNome').value = ReciboEnviado.nome;
@@ -139,9 +150,7 @@ GM_addStyle(`
     }
 
     async function preencherPopup(JsonDados) {
-        const proximoNumeroRecibo = await getProximoNumeroRecibo();
-        document.getElementById('ReciboNumero').value = proximoNumeroRecibo.NumeroRecibo;
-        document.getElementById('ReciboAno').value = proximoNumeroRecibo.Ano;
+        definirProximoNumeroRecibo();
         document.getElementById('ReciboNome').value = JsonDados.DadosCliente.Nome;
         document.getElementById('ReciboPlano').value = JsonDados.DadosRecibo["Plano de contas"];
         document.getElementById('ReciboData').value = JsonDados.DadosRecibo["Data de confirmação"];
@@ -156,6 +165,7 @@ GM_addStyle(`
             document.getElementById('ReciboStatus').innerHTML = JsonDados.ReciboDetails.ReciboStatus;
         }
 
+        definirAcoesDropdownTipoRecibo();
         toggleBotoes(JsonDados.DadosCliente["E-mail"] != null, JsonDados.DadosCliente.Celular != null);
     }
 
@@ -164,20 +174,20 @@ GM_addStyle(`
         let usefullProperties = ['Código', 'Descrição do recebimento', 'Plano de contas', 'Data do vencimento', 'Data de confirmação', 'Cliente', 'Observações', 'Valor total'];
         let dadosRecibo = tabularSearch(baseDocument, usefullProperties);
         let dadosCliente;
-        var thCliente = document.evaluate("//*/th[text()='Cliente']", baseDocument, null, XPathResult.ANY_TYPE, null).iterateNext();
+        let thCliente = document.evaluate("//*/th[text()='Cliente']", baseDocument, null, XPathResult.ANY_TYPE, null).iterateNext();
         if (thCliente) {
-            var link = thCliente.closest('tr').querySelector('a').href;
+            let link = thCliente.closest('tr').querySelector('a').href;
             if (link) {
                 dadosCliente = await getContatosCliente(link);
             }
         }
 
-        let JSON = {};
-        JSON.DadosCliente = dadosCliente;
-        JSON.DadosRecibo = dadosRecibo;
-        console.log(JSON);
-        window.DadosJson = JSON;
-        return JSON;
+        let JSONproperties = {};
+        JSONproperties.DadosCliente = dadosCliente;
+        JSONproperties.DadosRecibo = dadosRecibo;
+        console.log(JSONproperties);
+        window.DadosJson = JSONproperties;
+        return JSONproperties;
 
     }
 
@@ -186,8 +196,8 @@ GM_addStyle(`
         if (baseDocument === null) {
             baseDocument = document;
         }
-        var allProperties = baseDocument.querySelectorAll('tr');
-        for (var i = 0; i < allProperties.length; i++) {
+        let allProperties = baseDocument.querySelectorAll('tr');
+        for (let i = 0; i < allProperties.length; i++) {
             var headerPropriedade = allProperties[i].getElementsByTagName('th');
             if (headerPropriedade && headerPropriedade.length > 0) {
                 var nomePropriedade = headerPropriedade[0].innerText;
@@ -210,23 +220,23 @@ GM_addStyle(`
     }
 
     function getTransactionDetailsLink(actionMenu) {
-        var visualizarAction = actionMenu.querySelector('a[href*="visualizar_recebimento"]');
+        let visualizarAction = actionMenu.querySelector('a[href*="visualizar_recebimento"]');
         return visualizarAction.href;
     }
 
     function criarPopUp() {
-        let popup = htmlToElement('<div class="bootbox modal fade in" tabindex="-1" role="dialog" aria-hidden="false" id="enviarEmail"> <div class="modal-dialog modal-lg"> <div class="modal-content"> <div class="modal-header"> <button type="button" class="bootbox-close-button close" data-dismiss="modal" aria-hidden="true">×</button> <h3 class="modal-title" style="display:inline;" id="titulo">Enviar Recibo</h3> <div class="loader-violeta" style="display:inline-flex; margin-top:5px; margin-left:5px;"></div><h6 style="color: green;" id="ReciboStatus"></h6> </div><div class="modal-body"> <div class="bootbox-body"> <section class="content" style="margin-bottom: 10px; padding-bottom: 10px;"> <div class="box"> <div class="row"> <div class="col-sm-12 col-lg-12 col-md-12"> <div style="display:none;" wfd-invisible="true"> <input type="hidden" name="_method" value="PUT"> </div><input type="hidden" name="imprimir" value="1" autocomplete="off" id="MovimentacoesFinanceiraImprimir" wfd-invisible="true"> <div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboNumero">Numero do recibo</label> <input name="recibonumero" maxlength="100" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboNumero" placeholder=""> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboAno">Ano do recibo</label> <input name="reciboano" maxlength="100" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboAno" placeholder=""> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboNome">Nome do Cliente</label> <input name="nome" maxlength="100" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboNome" placeholder=""> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboPlano">Plano de Contas</label> <input name="plano" maxlength="30" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboPlano" placeholder="" readonly> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboData">Data do pagamento</label> <input name="data" maxlength="10" value="" required="required" class="required datepicker mascara-data form-control" autocomplete="off" type="text" id="ReciboData" placeholder=""> </div><div class="required form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboValorTotal">Valor</label> <input name="valor" required="required" class="mascara-valor required form-control" autocomplete="off" type="text" value="" id="ReciboValorTotal" placeholder=""> </div><div class="col-sm-12 col-lg-12 col-md-12 required"> <label for="ReciboDescricao">Descrição</label> <textarea name="descricao" class="form-control" autocomplete="off" cols="30" rows="6" id="ReciboDescricao" required="required"></textarea> </div><div class="col-sm-12 col-lg-12 col-md-12"> <hr> </div><div class="form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboEmail">E-mail</label> <input name="plano" maxlength="30" value="" class="form-control" autocomplete="off" type="text" id="ReciboEmail" placeholder="" readonly> </div><div class="form-group col-sm-6 col-lg-6 col-md-6"> <label for="ReciboTelefone">Número Telefone</label> <input name="telefone" maxlength="30" value="" class="form-control" autocomplete="off" type="text" id="ReciboTelefone" placeholder="" readonly> </div><div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px"> <button class="btn btn-primary" id="BotaoEnviaNotificacao"> <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar notificação </button> <a href="javascript:parent.bootbox.hideAll();" class="btn btn-danger"> <span class="glyphicon glyphicon-remove margin-right-10px"></span>Cancelar </a> </div><div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px"> <button class="btn btn-secondary float-right margin-right-10px" id="BotaoEnviaEmail"> <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via e-mail </button> <button class="btn btn-secondary float-right margin-right-10px" id="BotaoEnviaWhatsapp"> <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via whatsapp </button> </div></div></div></div></section> </div></div></div></div></div>');
+        let popup = htmlToElement('<div class="bootbox modal fade in" tabindex="-1" role="dialog" aria-hidden="false" id="enviarEmail"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="bootbox-close-button close" data-dismiss="modal" aria-hidden="true">×</button><h3 class="modal-title" style="display:inline" id="titulo">Enviar Recibo</h3><div class="loader-violeta" style="display:inline-flex;margin-top:5px;margin-left:5px"></div><h6 style="color:green" id="ReciboStatus"></h6></div><div class="modal-body"><div class="bootbox-body"><section class="content" style="margin-bottom:10px;padding-bottom:10px"><div class="box"><div class="row"><div class="col-sm-12 col-lg-12 col-md-12"><div style="display:none" wfd-invisible="true"><input type="hidden" name="_method" value="PUT"></div><input type="hidden" name="imprimir" value="1" autocomplete="off" id="MovimentacoesFinanceiraImprimir" wfd-invisible="true"><div class="required form-group col-sm-12 col-lg-12 col-md-12"><label for="TipoRecibo">Tipo Recibo</label><select name="tiporecibo" class="form-control" autocomplete="off" id="TipoRecibo" required="required"><option value="0">Mensalidade</option><option value="1">Doação</option></select></div><div class="required form-group col-sm-6 col-lg-6 col-md-6"><label for="ReciboNumero">Numero do recibo</label><input name="recibonumero" maxlength="100" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboNumero" placeholder=""></div><div class="required form-group col-sm-6 col-lg-6 col-md-6"><label for="ReciboAno">Ano do recibo</label><input name="reciboano" maxlength="100" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboAno" placeholder=""></div><div class="required form-group col-sm-6 col-lg-6 col-md-6"><label for="ReciboNome">Nome do Cliente</label><input name="nome" maxlength="100" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboNome" placeholder=""></div><div class="required form-group col-sm-6 col-lg-6 col-md-6"><label for="ReciboPlano">Plano de Contas</label><input name="plano" maxlength="30" value="" required="required" class="required form-control" autocomplete="off" type="text" id="ReciboPlano" placeholder="" readonly="readonly"></div><div class="required form-group col-sm-6 col-lg-6 col-md-6"><label for="ReciboData">Data do pagamento</label><input name="data" maxlength="10" value="" required="required" class="required mascara-data form-control" autocomplete="off" type="text" id="ReciboData" placeholder=""></div><div class="required form-group col-sm-6 col-lg-6 col-md-6"><label for="ReciboValorTotal">Valor</label><input name="valor" required="required" class="mascara-valor required form-control" autocomplete="off" type="text" value="" id="ReciboValorTotal" placeholder=""></div><div class="col-sm-12 col-lg-12 col-md-12 required"><label for="ReciboDescricao">Descrição</label><textarea name="descricao" class="form-control" autocomplete="off" cols="30" rows="6" id="ReciboDescricao" required="required"></textarea></div><div class="col-sm-12 col-lg-12 col-md-12"><hr></div><div class="form-group col-sm-6 col-lg-6 col-md-6"><label for="ReciboEmail">E-mail</label><input name="plano" maxlength="30" value="" class="form-control" autocomplete="off" type="text" id="ReciboEmail" placeholder="" readonly="readonly"></div><div class="form-group col-sm-6 col-lg-6 col-md-6"><label for="ReciboTelefone">Número Telefone</label><input name="telefone" maxlength="30" value="" class="form-control" autocomplete="off" type="text" id="ReciboTelefone" placeholder="" readonly="readonly"></div><div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px"><button class="btn btn-primary" id="BotaoEnviaNotificacao"><span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar notificação</button><a href="javascript:parent.bootbox.hideAll();" class="btn btn-danger"><span class="glyphicon glyphicon-remove margin-right-10px"></span>Cancelar</a></div><div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px"><button class="btn btn-secondary float-right margin-right-10px" id="BotaoEnviaEmail"><span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via e-mail</button><button class="btn btn-secondary float-right margin-right-10px" id="BotaoEnviaWhatsapp"><span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar via whatsapp</button></div></div></div></div></section></div></div></div></div></div>');
         return popup;
     }
 
     function createEnviarRecebimento(link) {
-        var listItem = document.createElement('li');
+        let listItem = document.createElement('li');
         listItem.style = "cursor: pointer;";
-        var anchor = document.createElement('a');
+        let anchor = document.createElement('a');
         anchor.onclick = function () { getPropriedadesRecibo(link); };
         anchor.setAttribute("data-toggle", "modal");
         anchor.setAttribute("data-target", "#enviarEmail");
-        var icon = document.createElement('i');
+        let icon = document.createElement('i');
         icon.className = "text-maroon fa fa-envelope";
         anchor.appendChild(icon);
         anchor.appendChild(document.createTextNode('Enviar recibo'));
@@ -235,21 +245,38 @@ GM_addStyle(`
     }
 
     function inserirEnviarRecebimento(item, index) {
-        var menuAcoes = item.closest('td');
-        var linkDetalhesTransacao = getTransactionDetailsLink(menuAcoes);
+        let menuAcoes = item.closest('td');
+        let linkDetalhesTransacao = getTransactionDetailsLink(menuAcoes);
         item.appendChild(createEnviarRecebimento(linkDetalhesTransacao));
     }
-
+   
     const getProximoNumeroRecibo = async () => {
-        const proximoNumeroRecibo = await fetch('https://gestaointegration.azurewebsites.net/api/recibo/proximo').then((response) => {
-            const proximoRecibo = response.json().then((data) => {
-                return {
-                    NumeroRecibo: data.numeroRecibo,
-                    Ano: data.anoRecibo
-                };
+        const proximoNumeroRecibo = await fetch('https://gestaointegration.azurewebsites.net/api/recibo/proximo', getSettings)
+            .then((response) => {
+                const proximoRecibo = response.json().then((data) => {
+                    return {
+                        NumeroRecibo: data.numeroRecibo,
+                        Ano: data.anoRecibo
+                    };
+                });
+                return proximoRecibo;
             });
-            return proximoRecibo;
-        });
+        return proximoNumeroRecibo;
+    }
+
+    const getProximoNumeroReciboByTemplate = async (template) => {
+        toggleLoader(true);
+        const proximoNumeroRecibo = await fetch('https://gestaointegration.azurewebsites.net/api/recibo/codigo/' + template, getSettings)
+            .then((response) => {
+                const proximoRecibo = response.json().then((data) => {
+                    return {
+                        NumeroRecibo: data.numeroRecibo,
+                        Ano: data.anoRecibo
+                    };
+                });
+                return proximoRecibo;
+            })
+            .finally(() => { toggleLoader(false) });
         return proximoNumeroRecibo;
     }
 
@@ -279,7 +306,8 @@ GM_addStyle(`
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'ApiKey': 'fraternidade'
             },
             body: JSON.stringify(objetoRequest)
         }).then((response) => {
@@ -293,36 +321,50 @@ GM_addStyle(`
         }).finally(() => { toggleLoader(false) });
     }
 
+    async function definirProximoNumeroRecibo() {
+        let tipoRecibo = document.getElementById('TipoRecibo');
+        const proximoNumeroRecibo = await getProximoNumeroReciboByTemplate(tipoRecibo.value);
+        document.getElementById('ReciboNumero').value = proximoNumeroRecibo.NumeroRecibo;
+        document.getElementById('ReciboAno').value = proximoNumeroRecibo.Ano;
+    }
+
     function definirAcoesBotao() {
-        var enviaNotificacaoButton = document.getElementById('BotaoEnviaNotificacao');
+        let enviaNotificacaoButton = document.getElementById('BotaoEnviaNotificacao');
         enviaNotificacaoButton.onclick = function () { enviaNotificacao(true, true); };
-        var enviaEmailButton = document.getElementById('BotaoEnviaEmail');
+        let enviaEmailButton = document.getElementById('BotaoEnviaEmail');
         enviaEmailButton.onclick = function () { enviaNotificacao(true, false); };
-        var enviaWhatsappButton = document.getElementById('BotaoEnviaWhatsapp');
+        let enviaWhatsappButton = document.getElementById('BotaoEnviaWhatsapp');
         enviaWhatsappButton.onclick = function () { enviaNotificacao(false, true); };
     }
 
+    function definirAcoesDropdownTipoRecibo() {
+        let tipoRecibo = document.getElementById('TipoRecibo');
+        tipoRecibo.addEventListener("change", (event) => {
+            definirProximoNumeroRecibo()
+        });
+    }
+
     function toggleBotoes(enviaEmailEnabled, enviaWhatsappEnabled) {
-        var enviaNotificacaoEnabled = true;
+        let enviaNotificacaoEnabled = true;
         if (enviaEmailEnabled == false && enviaWhatsappEnabled == false) {
             enviaNotificacaoEnabled = false;
         }
 
-        var enviaNotificacaoButton = document.getElementById('BotaoEnviaNotificacao');
+        let enviaNotificacaoButton = document.getElementById('BotaoEnviaNotificacao');
         if (!enviaNotificacaoEnabled) {
             enviaNotificacaoButton.style.display = "none";
         }
         else {
             enviaNotificacaoButton.style.display = "initial";
         }
-        var enviaEmailButton = document.getElementById('BotaoEnviaEmail');
+        let enviaEmailButton = document.getElementById('BotaoEnviaEmail');
         if (!enviaEmailEnabled) {
             enviaEmailButton.style.display = "none";
         }
         else {
             enviaEmailButton.style.display = "initial";
         }
-        var enviaWhatsappButton = document.getElementById('BotaoEnviaWhatsapp');
+        let enviaWhatsappButton = document.getElementById('BotaoEnviaWhatsapp');
         if (!enviaWhatsappEnabled) {
             enviaWhatsappButton.style.display = "none";
         }
@@ -331,20 +373,20 @@ GM_addStyle(`
         }
     }
 
-    function getRecebimentosTable(){
+    function getRecebimentosTable() {
         let retries = 50;
 
         const intervalID = setInterval(_ => {
             const tabelaRecebimentos = document.getElementsByTagName("table");
-            if(tabelaRecebimentos != null && tabelaRecebimentos.length > 0 ){
+            if (tabelaRecebimentos != null && tabelaRecebimentos.length > 0) {
                 console.log("Encontrada tabela principal");
-                var menuSuspenso = tabelaRecebimentos[0].getElementsByClassName("dropdown-menu");
-                var popup = criarPopUp();
+                let menuSuspenso = tabelaRecebimentos[0].getElementsByClassName("dropdown-menu");
+                let popup = criarPopUp();
                 document.body.append(popup);
 
                 definirAcoesBotao();
 
-                for (var i = 0; i < menuSuspenso.length; i++) {
+                for (let i = 0; i < menuSuspenso.length; i++) {
                     //Verifica se o pagamento está na situação confirmado pelo seletor de classe de sucesso
                     if (menuSuspenso[i].closest('tr').querySelector('.label-success') || menuSuspenso[i].closest('tr').querySelector('.badge-success')) {
                         inserirEnviarRecebimento(menuSuspenso[i], i);
@@ -352,7 +394,7 @@ GM_addStyle(`
                 }
             }
             retries--;
-            if(retries == 0 || (tabelaRecebimentos != null && tabelaRecebimentos.length > 0 )) clearInterval(intervalID);
+            if (retries == 0 || (tabelaRecebimentos != null && tabelaRecebimentos.length > 0)) clearInterval(intervalID);
         }, 100);
     }
 
