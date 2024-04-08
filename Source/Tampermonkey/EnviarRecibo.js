@@ -93,6 +93,45 @@ GM_addStyle(`
         return JSONResultado;
     }
 
+    const getPropriedadesReciboNew = async (codigo) => {
+        limparPopup();
+        // let fetchResult = await fetch(linkDetalhes).then(ReadableStream => ReadableStream.text());
+        // let JSONResultado = await parsePropriedadesRecibo(fetchResult);   
+        let JSONResultado = {};    
+        let reciboStatus = await getStatusRecibo(codigo);
+        JSONResultado.ReciboDetails = reciboStatus;
+
+        let reciboInformacoes = await getDadosRecibo(codigo);
+        if(reciboInformacoes != null){            
+            let dadosRecibo = {};
+            dadosRecibo["Plano de contas"] = reciboInformacoes.planoContas;
+            dadosRecibo["Data de confirmação"] = reciboInformacoes.dataConfirmacao;
+            dadosRecibo["Valor total"] = reciboInformacoes.valorTotal;
+            dadosRecibo["Descrição do recebimento"] = reciboInformacoes.descricao;
+            dadosRecibo["Observações"] = null;
+            
+
+            let dadosCliente = {};
+            dadosCliente["Nome"] = reciboInformacoes.cliente.nomeCliente;
+            dadosCliente["E-mail"] = reciboInformacoes.cliente.emailCliente;
+            dadosCliente["Celular"] = reciboInformacoes.cliente.celularCliente;            
+
+            JSONResultado.DadosCliente = dadosCliente;
+            JSONResultado.DadosRecibo = dadosRecibo;
+            console.log(JSONResultado);
+            window.DadosJson = JSONResultado;            
+        }
+
+
+        if (JSONResultado.ReciboDetails != null) {
+            preencherDadosReciboEnviado(JSONResultado.ReciboDetails);
+        } else {
+            await preencherPopup(JSONResultado);
+        }
+
+        return JSONResultado;
+    }
+
     const getStatusRecibo = async (codigo) => {
         const apiUrl = `https://gestaointegration.azurewebsites.net/api/recibo/${codigo}`;
 
@@ -116,6 +155,29 @@ GM_addStyle(`
 
         return status;
     }
+
+    const getDadosRecibo = async (codigo) => {
+        const apiUrl = `https://gestaointegration.azurewebsites.net/api/informacoes/${codigo}`;
+
+        toggleLoader(true);
+        const status = await fetch(apiUrl, getSettings).then(function (response) {
+            if (response.ok) {
+                const currentStatus = response.json().then((data) => {                    
+                    return data;
+                });
+                return currentStatus;
+            } else {
+                return null;
+            }
+        })
+            .catch(function (error) {
+                console.log('There has been a problem with your fetch operation: ' + error.message);
+            })
+            .finally(() => { toggleLoader(false) });
+
+        return status;
+    }
+
 
     function limparPopup() {
         document.getElementById('TipoRecibo').value = 0;
@@ -244,11 +306,35 @@ GM_addStyle(`
         return listItem;
     }
 
+    function createEnviarRecebimentoNew(codigo) {
+        let listItem = document.createElement('li');
+        listItem.style = "cursor: pointer;";
+        let anchor = document.createElement('a');
+        anchor.onclick = function () { getPropriedadesReciboNew(codigo); };
+        anchor.setAttribute("data-toggle", "modal");
+        anchor.setAttribute("data-target", "#enviarEmail");
+        let icon = document.createElement('i');
+        icon.className = "text-maroon fa fa-envelope";
+        anchor.appendChild(icon);
+        anchor.appendChild(document.createTextNode('Enviar recibo'));
+        listItem.appendChild(anchor);
+        return listItem;
+    }
+
     function inserirEnviarRecebimento(item, index) {
         let menuAcoes = item.closest('td');
         let linkDetalhesTransacao = getTransactionDetailsLink(menuAcoes);
         item.appendChild(createEnviarRecebimento(linkDetalhesTransacao));
     }
+
+  function inserirEnviarRecebimentoNew(row, item, index){
+        let menuAcoes = item.closest('td');
+        let codigo = row.firstChild.innerHTML;
+        //let linkDetalhesTransacao = getTransactionDetailsLink(menuAcoes);
+        //item.appendChild(createEnviarRecebimento(linkDetalhesTransacao));
+        item.appendChild(createEnviarRecebimentoNew(codigo));
+  }
+
    
     const getProximoNumeroRecibo = async () => {
         const proximoNumeroRecibo = await fetch('https://gestaointegration.azurewebsites.net/api/recibo/proximo', getSettings)
@@ -389,8 +475,10 @@ GM_addStyle(`
 
                 for (let i = 0; i < menuSuspenso.length; i++) {
                     //Verifica se o pagamento está na situação confirmado pelo seletor de classe de sucesso
-                    if (menuSuspenso[i].closest('tr').querySelector('.label-success') || menuSuspenso[i].closest('tr').querySelector('.badge-success')) {
-                        inserirEnviarRecebimento(menuSuspenso[i], i);
+                    let row = menuSuspenso[i].closest('tr');
+                    if (row.querySelector('.label-success') || row.querySelector('.badge-success')) {
+                        //inserirEnviarRecebimento(menuSuspenso[i], i);
+                        inserirEnviarRecebimentoNew(row, menuSuspenso[i], i);
                     }
                 }
             }
