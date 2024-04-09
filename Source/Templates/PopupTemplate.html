@@ -1,5 +1,5 @@
 <div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" id="enviarEmail" aria-modal="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content modal-frame">
             <div class="modal-header">
                 <h3 class="modal-title" style="display:inline;" id="titulo">Enviar Recibo</h3>
@@ -7,7 +7,7 @@
                 <h6 style="color: green;" id="ReciboStatus"></h6>
             </div>
             <div class="modal-body">
-                <button type="button" aria-label="Close" class="close">×</button>
+                <button type="button" aria-label="Close" class="close" id="BotaoFechar">×</button>
                 <section class="content-header" modal="true">
                     <h1> Imprimir recibo </h1>
                 </section>
@@ -90,16 +90,13 @@
                                             autocomplete="off" type="text" id="ReciboTelefone" placeholder="" readonly>
                                     </div>
                                 </div>
-                                <div class="mt-2">
+                                <div class="form-row p-2">
                                     <div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px">
                                         <button class="btn btn-primary" id="BotaoEnviaNotificacao">
                                             <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar
                                             notificação
-                                        </button>
-                                        <!-- <a href="javascript:parent.bootbox.hideAll();" class="btn btn-danger">
-                                            <span class="glyphicon glyphicon-remove margin-right-10px"></span>Cancelar
-                                        </a> -->
-                                        <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close">
+                                        </button>   
+                                        <button id ="BotaoCancelar" type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close">
                                             <span aria-hidden="true">Cancelar</span>
                                         </button>
                                     </div>

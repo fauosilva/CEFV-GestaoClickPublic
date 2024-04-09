@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      2.2
+// @version      3.0
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://*.gestaoclick.com/movimentacoes_financeiras/index_recebimento*
@@ -59,11 +59,21 @@ GM_addStyle(`
     function toggleLoader(show) {
         let loader = document.getElementsByClassName("loader-violeta")[0];
         if (show) {
-            loader.classList.remove('hidden');
+            loader.classList.remove('d-none');
         } else {
-            loader.classList.add('hidden');
+            loader.classList.add('d-none');
         }
     }
+
+    function togglePopup(show) {
+        let popup = document.getElementById("enviarEmail");
+        if (show) {
+            popup.classList.add('show', 'd-inline-flex');
+        } else {
+            popup.classList.remove('show', 'd-inline-flex');
+        }
+    }
+
 
     function addMinutes(date, minutes) {
         return new Date(date.getTime() + minutes * 60000);
@@ -94,9 +104,10 @@ GM_addStyle(`
     }
 
     const getPropriedadesReciboNew = async (codigo) => {
+
         limparPopup();
-        // let fetchResult = await fetch(linkDetalhes).then(ReadableStream => ReadableStream.text());
-        // let JSONResultado = await parsePropriedadesRecibo(fetchResult);
+        togglePopup(true);
+
         let JSONResultado = {};
         let reciboStatus = await getStatusRecibo(codigo);
         JSONResultado.ReciboDetails = reciboStatus;
@@ -104,6 +115,7 @@ GM_addStyle(`
         let reciboInformacoes = await getDadosRecibo(codigo);
         if(reciboInformacoes != null){
             let dadosRecibo = {};
+            dadosRecibo["Código"] = codigo;
             dadosRecibo["Plano de contas"] = reciboInformacoes.planoContas;
             dadosRecibo["Data de confirmação"] = reciboInformacoes.dataConfirmacao;
             dadosRecibo["Valor total"] = reciboInformacoes.valorTotal;
@@ -287,7 +299,7 @@ GM_addStyle(`
     }
 
     function criarPopUp() {
-        let popup = htmlToElement('<div class="bootbox fade modal show"role=dialog aria-hidden=false aria-modal=true id=enviarEmail tabindex=-1><div class="modal-dialog modal-dialog-scrollable modal-lg"><div class="modal-content modal-frame"><div class=modal-header><h3 class=modal-title id=titulo style=display:inline>Enviar Recibo</h3><div class=loader-violeta style=display:inline-flex;margin-top:5px;margin-left:5px></div><h6 id=ReciboStatus style=color:green></h6></div><div class=modal-body><button class=close aria-label=Close type=button>×</button><section class=content-header modal=true><h1>Imprimir recibo</h1></section><section class=content style=margin-bottom:10px;padding-bottom:10px><div class=box><div class=row><div class="col-lg-12 col-md-12 col-sm-12"><div style=display:none wfd-invisible=true><input name=_method type=hidden value=PUT></div><input name=imprimir autocomplete=off id=MovimentacoesFinanceiraImprimir type=hidden value=1 wfd-invisible=true><div class="required form-group col-lg-12 col-md-12 col-sm-12"><label for=TipoRecibo>Tipo Recibo</label> <select autocomplete=off class=form-control id=TipoRecibo name=tiporecibo required><option value=0>Mensalidade<option value=1>Doação</select></div><div class="form-row p-2"><div class="required form-group col-lg-6 col-md-6 col-sm-6"role=group><label for=ReciboNumero class=d-block>Numero do recibo</label> <input name=recibonumero autocomplete=off id=ReciboNumero class="required form-control"placeholder=""maxlength=100 required></div><div class="required form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboAno>Ano do recibo</label> <input name=reciboano autocomplete=off id=ReciboAno class="required form-control"placeholder=""maxlength=100 required></div></div><div class="form-row p-2"><div class="required form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboNome>Nome do Cliente</label> <input name=nome autocomplete=off id=ReciboNome class="required form-control"placeholder=""maxlength=100 required></div><div class="required form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboPlano>Plano de Contas</label> <input name=plano autocomplete=off id=ReciboPlano class="required form-control"placeholder=""maxlength=30 required readonly></div></div><div class="form-row p-2"><div class="required form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboData>Data do pagamento</label> <input name=data autocomplete=off id=ReciboData class="required form-control mascara-data"placeholder=""maxlength=10 required></div><div class="required form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboValorTotal>Valor</label> <input name=valor autocomplete=off id=ReciboValorTotal class="required form-control mascara-valor"placeholder=""required></div></div><div class="required col-lg-12 col-md-12 col-sm-12"><label for=ReciboDescricao>Descrição</label> <textarea autocomplete=off class=form-control cols=30 id=ReciboDescricao name=descricao required rows=3></textarea></div><div class="col-lg-12 col-md-12 col-sm-12"><hr></div><div class="form-row p-2"><div class="form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboEmail>E-mail</label> <input name=plano autocomplete=off id=ReciboEmail class=form-control placeholder=""maxlength=30 readonly></div><div class="form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboTelefone>Número Telefone</label> <input name=telefone autocomplete=off id=ReciboTelefone class=form-control placeholder=""maxlength=30 readonly></div></div><div class=mt-2><div class="form-group col-lg-6 col-md-6 col-sm-6 margin-top-10px"><button class="btn btn-primary"id=BotaoEnviaNotificacao><span class="margin-right-10px glyphicon glyphicon-envelope"></span>Enviar notificação</button> <button class="btn btn-danger"aria-label=Close type=button data-dismiss=modal><span aria-hidden=true>×</span></button></div><div class="form-group col-lg-6 col-md-6 col-sm-6 margin-top-10px"><button class="margin-right-10px btn btn-secondary float-right"id=BotaoEnviaEmail><span class="margin-right-10px glyphicon glyphicon-envelope"></span>Enviar via e-mail</button> <button class="margin-right-10px btn btn-secondary float-right"id=BotaoEnviaWhatsapp><span class="margin-right-10px glyphicon glyphicon-envelope"></span>Enviar via whatsapp</button></div></div></div></div></div></section></div></div></div></div>'
+        let popup = htmlToElement('<div class="fade modal"role=dialog aria-hidden=true aria-modal=true id=enviarEmail tabindex=-1><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg"><div class="modal-content modal-frame"><div class=modal-header><h3 class=modal-title id=titulo style=display:inline>Enviar Recibo</h3><div class=loader-violeta style=display:inline-flex;margin-top:5px;margin-left:5px></div><h6 id=ReciboStatus style=color:green></h6></div><div class=modal-body><button class=close aria-label=Close type=button id="BotaoFechar">×</button><section class=content-header modal=true><h1>Imprimir recibo</h1></section><section class=content style=margin-bottom:10px;padding-bottom:10px><div class=box><div class=row><div class="col-lg-12 col-md-12 col-sm-12"><div style=display:none wfd-invisible=true><input name=_method type=hidden value=PUT></div><input name=imprimir autocomplete=off id=MovimentacoesFinanceiraImprimir type=hidden value=1 wfd-invisible=true><div class="required form-group col-lg-12 col-md-12 col-sm-12"><label for=TipoRecibo>Tipo Recibo</label> <select autocomplete=off class=form-control id=TipoRecibo name=tiporecibo required><option value=0>Mensalidade<option value=1>Doação</select></div><div class="form-row p-2"><div class="required form-group col-lg-6 col-md-6 col-sm-6"role=group><label for=ReciboNumero class=d-block>Numero do recibo</label> <input name=recibonumero autocomplete=off id=ReciboNumero class="required form-control"placeholder=""maxlength=100 required></div><div class="required form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboAno>Ano do recibo</label> <input name=reciboano autocomplete=off id=ReciboAno class="required form-control"placeholder=""maxlength=100 required></div></div><div class="form-row p-2"><div class="required form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboNome>Nome do Cliente</label> <input name=nome autocomplete=off id=ReciboNome class="required form-control"placeholder=""maxlength=100 required></div><div class="required form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboPlano>Plano de Contas</label> <input name=plano autocomplete=off id=ReciboPlano class="required form-control"placeholder=""maxlength=30 required readonly></div></div><div class="form-row p-2"><div class="required form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboData>Data do pagamento</label> <input name=data autocomplete=off id=ReciboData class="required form-control mascara-data"placeholder=""maxlength=10 required></div><div class="required form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboValorTotal>Valor</label> <input name=valor autocomplete=off id=ReciboValorTotal class="required form-control mascara-valor"placeholder=""required></div></div><div class="required col-lg-12 col-md-12 col-sm-12"><label for=ReciboDescricao>Descrição</label> <textarea autocomplete=off class=form-control cols=30 id=ReciboDescricao name=descricao required rows=3></textarea></div><div class="col-lg-12 col-md-12 col-sm-12"><hr></div><div class="form-row p-2"><div class="form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboEmail>E-mail</label> <input name=plano autocomplete=off id=ReciboEmail class=form-control placeholder=""maxlength=30 readonly></div><div class="form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboTelefone>Número Telefone</label> <input name=telefone autocomplete=off id=ReciboTelefone class=form-control placeholder=""maxlength=30 readonly></div></div><div class="form-row p-2"><div class="form-group col-lg-6 col-md-6 col-sm-6 margin-top-10px"><button class="btn btn-primary"id=BotaoEnviaNotificacao><span class="margin-right-10px glyphicon glyphicon-envelope"></span>Enviar notificação</button> <button class="btn btn-danger"id=BotaoCancelar aria-label=Close data-dismiss=modal type=button><span aria-hidden=true>Cancelar</span></button></div><div class="form-group col-lg-6 col-md-6 col-sm-6 margin-top-10px"><button class="margin-right-10px btn btn-secondary float-right"id=BotaoEnviaEmail><span class="margin-right-10px glyphicon glyphicon-envelope"></span>Enviar via e-mail</button> <button class="margin-right-10px btn btn-secondary float-right"id=BotaoEnviaWhatsapp><span class="margin-right-10px glyphicon glyphicon-envelope"></span>Enviar via whatsapp</button></div></div></div></div></div></section></div></div></div></div>'
                                  );
         return popup;
     }
@@ -423,6 +435,11 @@ GM_addStyle(`
         enviaEmailButton.onclick = function () { enviaNotificacao(true, false); };
         let enviaWhatsappButton = document.getElementById('BotaoEnviaWhatsapp');
         enviaWhatsappButton.onclick = function () { enviaNotificacao(false, true); };
+
+        let botaoFechar = document.getElementById("BotaoFechar");
+        botaoFechar.onclick = function () { togglePopup (false) };
+        let botaoCancelar = document.getElementById("BotaoCancelar");
+        botaoCancelar.onclick = function() { togglePopup (false) };
     }
 
     function definirAcoesDropdownTipoRecibo() {
