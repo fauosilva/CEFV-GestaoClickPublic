@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      3.0
+// @version      3.1
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://*.gestaoclick.com/movimentacoes_financeiras/index_recebimento*
@@ -494,7 +494,7 @@ GM_addStyle(`
                 for (let i = 0; i < menuSuspenso.length; i++) {
                     //Verifica se o pagamento está na situação confirmado pelo seletor de classe de sucesso
                     let row = menuSuspenso[i].closest('tr');
-                    if (row.querySelector('.label-success') || row.querySelector('.badge-success')) {
+                    if (row.querySelector('.text-success') || row.querySelector('.label-success') || row.querySelector('.badge-success')) {
                         //inserirEnviarRecebimento(menuSuspenso[i], i);
                         inserirEnviarRecebimentoNew(row, menuSuspenso[i], i);
                     }
