@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      3.1
+// @version      3.3
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://*.gestaoclick.com/movimentacoes_financeiras/index_recebimento*
@@ -343,6 +343,10 @@ GM_addStyle(`
   function inserirEnviarRecebimentoNew(row, item, index){
         let menuAcoes = item.closest('td');
         let codigo = row.firstChild.innerHTML;
+        isNaN(parseInt(codigo,10))
+        {
+            document.getElementById('ReciboStatus').innerHTML = 'Por favor habilite a coluna código na visualização da tabela.'
+        }
         //let linkDetalhesTransacao = getTransactionDetailsLink(menuAcoes);
         //item.appendChild(createEnviarRecebimento(linkDetalhesTransacao));
         item.appendChild(createEnviarRecebimentoNew(codigo));
@@ -494,9 +498,23 @@ GM_addStyle(`
                 for (let i = 0; i < menuSuspenso.length; i++) {
                     //Verifica se o pagamento está na situação confirmado pelo seletor de classe de sucesso
                     let row = menuSuspenso[i].closest('tr');
+                    let alreadyInserted = false;
                     if (row.querySelector('.text-success') || row.querySelector('.label-success') || row.querySelector('.badge-success')) {
                         //inserirEnviarRecebimento(menuSuspenso[i], i);
                         inserirEnviarRecebimentoNew(row, menuSuspenso[i], i);
+                        alreadyInserted = true;
+                    }
+
+                    if (!alreadyInserted) {
+                        let cells = row.cells
+                        for (let j = 0; j < cells.length; j++) {
+                            if (cells[j].innerText == 'Confirmado')
+                            {
+                                //console.log("Inserindo menu na celula:", cells[0].innerText);
+                                inserirEnviarRecebimentoNew(row, menuSuspenso[i], i);
+                                break;
+                            }
+                        }
                     }
                 }
             }
