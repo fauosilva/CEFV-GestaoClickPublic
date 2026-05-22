@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      3.3
+// @version      3.4
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
-// @match        https://*.gestaoclick.com/movimentacoes_financeiras/index_recebimento*
+// @match        https://*.gestaoclick.com/financeiro/movimentacoes_financeiras/index_recebimento*
 // @updateURL    https://raw.githubusercontent.com/fauosilva/CEFV-GestaoClickPublic/master/Source/Tampermonkey/EnviarRecibo.js
 // @downloadURL  https://raw.githubusercontent.com/fauosilva/CEFV-GestaoClickPublic/master/Source/Tampermonkey/EnviarRecibo.js
 // @run-at document-idle
