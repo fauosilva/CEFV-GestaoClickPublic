@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      3.4
+// @version      4.0
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://*.gestaoclick.com/financeiro/movimentacoes_financeiras/index_recebimento*
@@ -51,7 +51,7 @@ GM_addStyle(`
 
     function htmlToElement(html) {
         let template = document.createElement('div');
-        html = html.trim(); // Never return a text node of whitespace as the result
+        html = html.trim();
         template.innerHTML = html;
         return template;
     }
@@ -67,10 +67,26 @@ GM_addStyle(`
 
     function togglePopup(show) {
         let popup = document.getElementById("enviarEmail");
+        let backdrop = document.getElementById("enviarEmailBackdrop");
         if (show) {
-            popup.classList.add('show', 'd-inline-flex');
+            popup.classList.add('show');
+            popup.style.display = 'block';
+            document.body.classList.add('modal-open');
+            if (!backdrop) {
+                backdrop = document.createElement('div');
+                backdrop.id = 'enviarEmailBackdrop';
+                backdrop.className = 'modal-backdrop fade show';
+                document.body.appendChild(backdrop);
+            } else {
+                backdrop.style.display = '';
+            }
         } else {
-            popup.classList.remove('show', 'd-inline-flex');
+            popup.classList.remove('show');
+            popup.style.display = 'none';
+            document.body.classList.remove('modal-open');
+            if (backdrop) {
+                backdrop.style.display = 'none';
+            }
         }
     }
 
@@ -275,21 +291,17 @@ GM_addStyle(`
             var headerPropriedade = allProperties[i].getElementsByTagName('th');
             if (headerPropriedade && headerPropriedade.length > 0) {
                 var nomePropriedade = headerPropriedade[0].innerText;
-                //console.log(nomePropriedade + " Extraído do HTML");
             }
             if (usefullProperties.includes(nomePropriedade)) {
-                //console.log(nomePropriedade + " Encontrada dentro do array de proprieades a serem buscadas");
                 var fieldPropriedade = allProperties[i].getElementsByTagName('td');
                 if (fieldPropriedade && fieldPropriedade.length > 0) {
                     var valor = fieldPropriedade[0].innerText.trim();
-                    //console.log(valor + " Extraído do HTML para a propriedade: " + nomePropriedade);
                     if (valor) {
                         returnJson[nomePropriedade] = valor;
                     }
                 }
             }
         }
-        //console.log(returnJson);
         return returnJson;
     }
 
@@ -299,8 +311,92 @@ GM_addStyle(`
     }
 
     function criarPopUp() {
-        let popup = htmlToElement('<div class="fade modal"role=dialog aria-hidden=true aria-modal=true id=enviarEmail tabindex=-1><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg"><div class="modal-content modal-frame"><div class=modal-header><h3 class=modal-title id=titulo style=display:inline>Enviar Recibo</h3><div class=loader-violeta style=display:inline-flex;margin-top:5px;margin-left:5px></div><h6 id=ReciboStatus style=color:green></h6></div><div class=modal-body><button class=close aria-label=Close type=button id="BotaoFechar">×</button><section class=content-header modal=true><h1>Imprimir recibo</h1></section><section class=content style=margin-bottom:10px;padding-bottom:10px><div class=box><div class=row><div class="col-lg-12 col-md-12 col-sm-12"><div style=display:none wfd-invisible=true><input name=_method type=hidden value=PUT></div><input name=imprimir autocomplete=off id=MovimentacoesFinanceiraImprimir type=hidden value=1 wfd-invisible=true><div class="required form-group col-lg-12 col-md-12 col-sm-12"><label for=TipoRecibo>Tipo Recibo</label> <select autocomplete=off class=form-control id=TipoRecibo name=tiporecibo required><option value=0>Mensalidade<option value=1>Doação</select></div><div class="form-row p-2"><div class="required form-group col-lg-6 col-md-6 col-sm-6"role=group><label for=ReciboNumero class=d-block>Numero do recibo</label> <input name=recibonumero autocomplete=off id=ReciboNumero class="required form-control"placeholder=""maxlength=100 required></div><div class="required form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboAno>Ano do recibo</label> <input name=reciboano autocomplete=off id=ReciboAno class="required form-control"placeholder=""maxlength=100 required></div></div><div class="form-row p-2"><div class="required form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboNome>Nome do Cliente</label> <input name=nome autocomplete=off id=ReciboNome class="required form-control"placeholder=""maxlength=100 required></div><div class="required form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboPlano>Plano de Contas</label> <input name=plano autocomplete=off id=ReciboPlano class="required form-control"placeholder=""maxlength=30 required readonly></div></div><div class="form-row p-2"><div class="required form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboData>Data do pagamento</label> <input name=data autocomplete=off id=ReciboData class="required form-control mascara-data"placeholder=""maxlength=10 required></div><div class="required form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboValorTotal>Valor</label> <input name=valor autocomplete=off id=ReciboValorTotal class="required form-control mascara-valor"placeholder=""required></div></div><div class="required col-lg-12 col-md-12 col-sm-12"><label for=ReciboDescricao>Descrição</label> <textarea autocomplete=off class=form-control cols=30 id=ReciboDescricao name=descricao required rows=3></textarea></div><div class="col-lg-12 col-md-12 col-sm-12"><hr></div><div class="form-row p-2"><div class="form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboEmail>E-mail</label> <input name=plano autocomplete=off id=ReciboEmail class=form-control placeholder=""maxlength=30 readonly></div><div class="form-group col-lg-6 col-md-6 col-sm-6"><label for=ReciboTelefone>Número Telefone</label> <input name=telefone autocomplete=off id=ReciboTelefone class=form-control placeholder=""maxlength=30 readonly></div></div><div class="form-row p-2"><div class="form-group col-lg-6 col-md-6 col-sm-6 margin-top-10px"><button class="btn btn-primary"id=BotaoEnviaNotificacao><span class="margin-right-10px glyphicon glyphicon-envelope"></span>Enviar notificação</button> <button class="btn btn-danger"id=BotaoCancelar aria-label=Close data-dismiss=modal type=button><span aria-hidden=true>Cancelar</span></button></div><div class="form-group col-lg-6 col-md-6 col-sm-6 margin-top-10px"><button class="margin-right-10px btn btn-secondary float-right"id=BotaoEnviaEmail><span class="margin-right-10px glyphicon glyphicon-envelope"></span>Enviar via e-mail</button> <button class="margin-right-10px btn btn-secondary float-right"id=BotaoEnviaWhatsapp><span class="margin-right-10px glyphicon glyphicon-envelope"></span>Enviar via whatsapp</button></div></div></div></div></div></section></div></div></div></div>'
-                                 );
+        let popup = htmlToElement(
+            '<div class="fade modal" role="dialog" aria-hidden="true" aria-modal="true" id="enviarEmail" tabindex="-1">' +
+              '<div class="modal-dialog modal-lg">' +
+                '<div class="modal-content modal-frame">' +
+                  '<div class="modal-body">' +
+                    '<button type="button" aria-label="Close" class="close" id="BotaoFechar">&times;</button>' +
+                    '<section class="content-header" modal="true">' +
+                      '<h1 style="display: inline;">Enviar Recibo</h1>' +
+                      '<div class="loader-violeta d-none" style="display: inline-flex; margin-top: 5px; margin-left: 5px;"></div>' +
+                      '<h6 id="ReciboStatus" style="color: green;"></h6>' +
+                    '</section>' +
+                    '<section class="content">' +
+                      '<div class="card p-2">' +
+                        '<div class="row">' +
+                          '<div class="col-lg-12 col-md-12 col-sm-12">' +
+                            '<div class="required form-group col-lg-12 col-md-12 col-sm-12">' +
+                              '<label for="TipoRecibo">Tipo Recibo</label>' +
+                              '<select autocomplete="off" class="form-control" id="TipoRecibo" name="tiporecibo" required>' +
+                                '<option value="0">Mensalidade</option>' +
+                                '<option value="1">Doação</option>' +
+                              '</select>' +
+                            '</div>' +
+                            '<div class="form-row p-2">' +
+                              '<div class="required form-group col-lg-6 col-md-6 col-sm-6" role="group">' +
+                                '<label for="ReciboNumero" class="d-block">Numero do recibo</label>' +
+                                '<input name="recibonumero" autocomplete="off" id="ReciboNumero" class="required form-control" placeholder="" maxlength="100" required>' +
+                              '</div>' +
+                              '<div class="required form-group col-lg-6 col-md-6 col-sm-6">' +
+                                '<label for="ReciboAno">Ano do recibo</label>' +
+                                '<input name="reciboano" autocomplete="off" id="ReciboAno" class="required form-control" placeholder="" maxlength="100" required>' +
+                              '</div>' +
+                            '</div>' +
+                            '<div class="form-row p-2">' +
+                              '<div class="required form-group col-lg-6 col-md-6 col-sm-6">' +
+                                '<label for="ReciboNome">Nome do Cliente</label>' +
+                                '<input name="nome" autocomplete="off" id="ReciboNome" class="required form-control" placeholder="" maxlength="100" required>' +
+                              '</div>' +
+                              '<div class="required form-group col-lg-6 col-md-6 col-sm-6">' +
+                                '<label for="ReciboPlano">Plano de Contas</label>' +
+                                '<input name="plano" autocomplete="off" id="ReciboPlano" class="required form-control" placeholder="" maxlength="30" required readonly>' +
+                              '</div>' +
+                            '</div>' +
+                            '<div class="form-row p-2">' +
+                              '<div class="required form-group col-lg-6 col-md-6 col-sm-6">' +
+                                '<label for="ReciboData">Data do pagamento</label>' +
+                                '<input name="data" autocomplete="off" id="ReciboData" class="required form-control mascara-data" placeholder="" maxlength="10" required>' +
+                              '</div>' +
+                              '<div class="required form-group col-lg-6 col-md-6 col-sm-6">' +
+                                '<label for="ReciboValorTotal">Valor</label>' +
+                                '<input name="valor" autocomplete="off" id="ReciboValorTotal" class="required form-control mascara-valor" placeholder="" required>' +
+                              '</div>' +
+                            '</div>' +
+                            '<div class="required col-lg-12 col-md-12 col-sm-12">' +
+                              '<label for="ReciboDescricao">Descrição</label>' +
+                              '<textarea autocomplete="off" class="form-control" cols="30" id="ReciboDescricao" name="descricao" required rows="3"></textarea>' +
+                            '</div>' +
+                            '<div class="col-lg-12 col-md-12 col-sm-12"><hr></div>' +
+                            '<div class="form-row p-2">' +
+                              '<div class="form-group col-lg-6 col-md-6 col-sm-6">' +
+                                '<label for="ReciboEmail">E-mail</label>' +
+                                '<input name="plano" autocomplete="off" id="ReciboEmail" class="form-control" placeholder="" maxlength="30" readonly>' +
+                              '</div>' +
+                              '<div class="form-group col-lg-6 col-md-6 col-sm-6">' +
+                                '<label for="ReciboTelefone">Número Telefone</label>' +
+                                '<input name="telefone" autocomplete="off" id="ReciboTelefone" class="form-control" placeholder="" maxlength="30" readonly>' +
+                              '</div>' +
+                            '</div>' +
+                            '<div class="form-row p-2">' +
+                              '<div class="form-group col-lg-6 col-md-6 col-sm-6 margin-top-10px">' +
+                                '<button class="btn btn-primary" id="BotaoEnviaNotificacao"><span class="margin-right-10px glyphicon glyphicon-envelope"></span>Enviar notificação</button> ' +
+                                '<button class="btn btn-danger" id="BotaoCancelar" aria-label="Close" type="button"><span aria-hidden="true">Cancelar</span></button>' +
+                              '</div>' +
+                              '<div class="form-group col-lg-6 col-md-6 col-sm-6 margin-top-10px">' +
+                                '<button class="margin-right-10px btn btn-secondary float-right" id="BotaoEnviaEmail"><span class="margin-right-10px glyphicon glyphicon-envelope"></span>Enviar via e-mail</button> ' +
+                                '<button class="margin-right-10px btn btn-secondary float-right" id="BotaoEnviaWhatsapp"><span class="margin-right-10px glyphicon glyphicon-envelope"></span>Enviar via whatsapp</button>' +
+                              '</div>' +
+                            '</div>' +
+                          '</div>' +
+                        '</div>' +
+                      '</div>' +
+                    '</section>' +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>'
+        );
         return popup;
     }
 
@@ -321,15 +417,19 @@ GM_addStyle(`
 
     function createEnviarRecebimentoNew(codigo) {
         let listItem = document.createElement('li');
-        listItem.style = "cursor: pointer;";
+        listItem.setAttribute('role', 'presentation');
         let anchor = document.createElement('a');
-        anchor.onclick = function () { getPropriedadesReciboNew(codigo); };
-        anchor.setAttribute("data-toggle", "modal");
-        anchor.setAttribute("data-target", "#enviarEmail");
+        anchor.setAttribute('role', 'menuitem');
+        anchor.className = 'dropdown-item';
+        anchor.href = '#';
+        anchor.onclick = function (e) {
+            e.preventDefault();
+            getPropriedadesReciboNew(codigo);
+        };
         let icon = document.createElement('i');
-        icon.className = "text-maroon fa fa-envelope";
+        icon.className = "text-maroon fa fa-envelope mr-2";
         anchor.appendChild(icon);
-        anchor.appendChild(document.createTextNode('Enviar recibo'));
+        anchor.appendChild(document.createTextNode(' Enviar recibo'));
         listItem.appendChild(anchor);
         return listItem;
     }
@@ -340,17 +440,15 @@ GM_addStyle(`
         item.appendChild(createEnviarRecebimento(linkDetalhesTransacao));
     }
 
-  function inserirEnviarRecebimentoNew(row, item, index){
+    function inserirEnviarRecebimentoNew(row, item, index) {
         let menuAcoes = item.closest('td');
         let codigo = row.firstChild.innerHTML;
-        isNaN(parseInt(codigo,10))
-        {
-            document.getElementById('ReciboStatus').innerHTML = 'Por favor habilite a coluna código na visualização da tabela.'
+        if (isNaN(parseInt(codigo, 10))) {
+            document.getElementById('ReciboStatus').innerHTML = 'Por favor habilite a coluna código na visualização da tabela.';
+            return;
         }
-        //let linkDetalhesTransacao = getTransactionDetailsLink(menuAcoes);
-        //item.appendChild(createEnviarRecebimento(linkDetalhesTransacao));
         item.appendChild(createEnviarRecebimentoNew(codigo));
-  }
+    }
 
 
     const getProximoNumeroRecibo = async () => {
@@ -404,8 +502,6 @@ GM_addStyle(`
         objetoRequest.DadosCliente = window.DadosJson.DadosCliente;
         objetoRequest.DadosRecibo = window.DadosJson.DadosRecibo;
 
-        //console.log(objetoRequest);
-
         const rawResponse = await fetch('https://gestaointegration.azurewebsites.net/api/recibo', {
             method: 'POST',
             headers: {
@@ -441,9 +537,9 @@ GM_addStyle(`
         enviaWhatsappButton.onclick = function () { enviaNotificacao(false, true); };
 
         let botaoFechar = document.getElementById("BotaoFechar");
-        botaoFechar.onclick = function () { togglePopup (false) };
+        botaoFechar.onclick = function () { togglePopup(false) };
         let botaoCancelar = document.getElementById("BotaoCancelar");
-        botaoCancelar.onclick = function() { togglePopup (false) };
+        botaoCancelar.onclick = function() { togglePopup(false) };
     }
 
     function definirAcoesDropdownTipoRecibo() {
@@ -482,48 +578,53 @@ GM_addStyle(`
         }
     }
 
-    function getRecebimentosTable() {
-        let retries = 50;
+    function injectMenuItems(table) {
+        let menuSuspenso = table.getElementsByClassName("dropdown-menu");
+        for (let i = 0; i < menuSuspenso.length; i++) {
+            if (menuSuspenso[i].hasAttribute('data-recibo-injected')) continue;
 
-        const intervalID = setInterval(_ => {
-            const tabelaRecebimentos = document.getElementsByTagName("table");
-            if (tabelaRecebimentos != null && tabelaRecebimentos.length > 0) {
-                console.log("Encontrada tabela principal");
-                let menuSuspenso = tabelaRecebimentos[0].getElementsByClassName("dropdown-menu");
-                let popup = criarPopUp();
-                document.body.append(popup);
+            let row = menuSuspenso[i].closest('tr');
+            let shouldInject = false;
 
-                definirAcoesBotao();
+            if (row.querySelector('.text-success') || row.querySelector('.label-success') || row.querySelector('.badge-success')) {
+                shouldInject = true;
+            }
 
-                for (let i = 0; i < menuSuspenso.length; i++) {
-                    //Verifica se o pagamento está na situação confirmado pelo seletor de classe de sucesso
-                    let row = menuSuspenso[i].closest('tr');
-                    let alreadyInserted = false;
-                    if (row.querySelector('.text-success') || row.querySelector('.label-success') || row.querySelector('.badge-success')) {
-                        //inserirEnviarRecebimento(menuSuspenso[i], i);
-                        inserirEnviarRecebimentoNew(row, menuSuspenso[i], i);
-                        alreadyInserted = true;
-                    }
-
-                    if (!alreadyInserted) {
-                        let cells = row.cells
-                        for (let j = 0; j < cells.length; j++) {
-                            if (cells[j].innerText == 'Confirmado')
-                            {
-                                //console.log("Inserindo menu na celula:", cells[0].innerText);
-                                inserirEnviarRecebimentoNew(row, menuSuspenso[i], i);
-                                break;
-                            }
-                        }
+            if (!shouldInject) {
+                let cells = row.cells;
+                for (let j = 0; j < cells.length; j++) {
+                    if (cells[j].innerText === 'Confirmado') {
+                        shouldInject = true;
+                        break;
                     }
                 }
             }
-            retries--;
-            if (retries == 0 || (tabelaRecebimentos != null && tabelaRecebimentos.length > 0)) clearInterval(intervalID);
-        }, 100);
+
+            if (shouldInject) {
+                inserirEnviarRecebimentoNew(row, menuSuspenso[i], i);
+                menuSuspenso[i].setAttribute('data-recibo-injected', 'true');
+            }
+        }
     }
 
-    //var tabelaRecebimentos = document.getElementById("recebimentos");
-    //var tabelaRecebimentos = document.getElementsByTagName("table");
+    function getRecebimentosTable() {
+        let popupCreated = false;
+
+        setInterval(() => {
+            const table = document.querySelector('table');
+            if (!table) return;
+
+            if (!popupCreated) {
+                console.log("Encontrada tabela principal");
+                let popup = criarPopUp();
+                document.body.append(popup);
+                definirAcoesBotao();
+                popupCreated = true;
+            }
+
+            injectMenuItems(table);
+        }, 1000);
+    }
+
     getRecebimentosTable();
 })();
