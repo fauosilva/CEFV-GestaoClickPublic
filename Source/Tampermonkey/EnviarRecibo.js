@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      4.4
+// @version      4.5
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://*.gestaoclick.com/financeiro/movimentacoes_financeiras/index_recebimento*
@@ -459,10 +459,12 @@ GM_addStyle(`
         anchor.onclick = function (e) {
             e.preventDefault();
             // Fecha o menu de ações (dropdown do Bootstrap-Vue) antes de abrir o popup
-            let menu = anchor.closest('.dropdown-menu');
-            let toggle = anchor.closest('.dropdown')?.querySelector('.dropdown-toggle');
-            if (menu && menu.classList.contains('show') && toggle) {
-                toggle.click();
+            let dropdown = anchor.closest('.dropdown');
+            let dropdownVue = dropdown?.__vue__;
+            if (dropdownVue && typeof dropdownVue.hide === 'function') {
+                dropdownVue.hide();
+            } else if (anchor.closest('.dropdown-menu')?.classList.contains('show')) {
+                dropdown?.querySelector('.dropdown-toggle')?.click();
             }
             getPropriedadesReciboNew(codigo);
         };
