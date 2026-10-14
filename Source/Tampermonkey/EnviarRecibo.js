@@ -590,7 +590,8 @@ GM_addStyle(`
     function montarMensagemWhatsapp(recibo) {
         let tipo = parseInt(document.getElementById('TipoRecibo').value, 10) === 1 ? 'doação' : 'contribuição';
         let primeiroNome = recibo.nome.trim().split(/\s+/)[0];
-        return `Olá, ${primeiroNome}! 🙏\n\n` +
+        // Sem emojis: o redirecionamento do wa.me/api.whatsapp.com corrompe caracteres fora do BMP (vira "�")
+        return `Olá, ${primeiroNome}!\n\n` +
             `Agradecemos a sua ${tipo} ao Centro Espiritualista Fonte Violeta.\n\n` +
             `*Recibo nº ${recibo.numero}/${recibo.ano}*\n` +
             `Referente a: ${recibo.descricao}\n` +
