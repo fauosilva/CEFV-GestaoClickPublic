@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      4.6
+// @version      4.7
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://*.gestaoclick.com/financeiro/movimentacoes_financeiras/index_recebimento*
@@ -597,6 +597,7 @@ GM_addStyle(`
             `Referente a: ${recibo.descricao}\n` +
             `Valor: R$ ${recibo.valor}\n` +
             `Data do pagamento: ${recibo.data}\n\n` +
+            (recibo.link ? `Visualize o recibo: ${recibo.link}\n\n` : '') +
             `Tesouraria CEFV`;
     }
 
@@ -661,7 +662,8 @@ GM_addStyle(`
                     nome: objetoRequest.DadosNotificacaoRecibo.Nome,
                     descricao: objetoRequest.DadosNotificacaoRecibo.Descricao,
                     valor: objetoRequest.DadosNotificacaoRecibo.Valor,
-                    data: objetoRequest.DadosNotificacaoRecibo.Data
+                    data: objetoRequest.DadosNotificacaoRecibo.Data,
+                    link: reciboGravado?.linkVisualizacao
                 };
 
                 let canais = [];
