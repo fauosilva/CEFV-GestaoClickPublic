@@ -4,6 +4,8 @@
       - título h4.mb-1 + hr dentro de section.content-header
       - campos em .form-row com .form-group.required.col-sm-*
       - rodapé .rodape-formulario: Cancelar (.cancelar-rodape) à esquerda, ações (.acao-rodape) à direita
+    O layout do rodapé dos modais nativos vem de estilos scoped do Vue; o script reproduz via GM_addStyle
+    (#enviarEmail .rodape-formulario { display: flex; justify-content: space-between; ... }).
     Manter sincronizado com criarPopUp.
 -->
 <div class="modal fade" role="dialog" aria-modal="true" id="enviarEmail" tabindex="-1">
@@ -82,13 +84,13 @@
                                 </div>
                                 <div class="acao-rodape">
                                     <button type="button" class="btn btn-default mr-2" id="BotaoEnviaWhatsapp">
-                                        <i class="fa fa-whatsapp mr-1"></i>Via WhatsApp
+                                        <i class="fa fa-mobile mr-1"></i>Via WhatsApp
                                     </button>
                                     <button type="button" class="btn btn-default mr-2" id="BotaoEnviaEmail">
                                         <i class="fa fa-envelope mr-1"></i>Via e-mail
                                     </button>
                                     <button type="button" class="btn btn-primary" id="BotaoEnviaNotificacao">
-                                        <i class="fa fa-paper-plane mr-1"></i>Enviar
+                                        Enviar
                                     </button>
                                 </div>
                             </div>

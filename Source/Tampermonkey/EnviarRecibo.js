@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      4.2
+// @version      4.3
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://*.gestaoclick.com/financeiro/movimentacoes_financeiras/index_recebimento*
@@ -32,6 +32,15 @@ GM_addStyle(`
 @keyframes spinvioleta {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Rodapé no padrão dos modais nativos: Cancelar à esquerda, ações à direita */
+#enviarEmail .rodape-formulario {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 ` );
 
@@ -412,9 +421,9 @@ GM_addStyle(`
                               '<button type="button" class="btn btn-default" id="BotaoCancelar">Cancelar</button>' +
                             '</div>' +
                             '<div class="acao-rodape">' +
-                              '<button type="button" class="btn btn-default mr-2" id="BotaoEnviaWhatsapp"><i class="fa fa-whatsapp mr-1"></i>Via WhatsApp</button>' +
+                              '<button type="button" class="btn btn-default mr-2" id="BotaoEnviaWhatsapp"><i class="fa fa-mobile mr-1"></i>Via WhatsApp</button>' +
                               '<button type="button" class="btn btn-default mr-2" id="BotaoEnviaEmail"><i class="fa fa-envelope mr-1"></i>Via e-mail</button>' +
-                              '<button type="button" class="btn btn-primary" id="BotaoEnviaNotificacao"><i class="fa fa-paper-plane mr-1"></i>Enviar</button>' +
+                              '<button type="button" class="btn btn-primary" id="BotaoEnviaNotificacao">Enviar</button>' +
                             '</div>' +
                           '</div>' +
                         '</form>' +
@@ -452,6 +461,12 @@ GM_addStyle(`
         anchor.href = '#';
         anchor.onclick = function (e) {
             e.preventDefault();
+            // Fecha o menu de ações (dropdown do Bootstrap-Vue) antes de abrir o popup
+            let menu = anchor.closest('.dropdown-menu');
+            let toggle = anchor.closest('.dropdown')?.querySelector('.dropdown-toggle');
+            if (menu && menu.classList.contains('show') && toggle) {
+                toggle.click();
+            }
             getPropriedadesReciboNew(codigo);
         };
         let icon = document.createElement('i');
