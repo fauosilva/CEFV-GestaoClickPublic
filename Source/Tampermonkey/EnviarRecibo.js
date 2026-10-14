@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      4.0
+// @version      4.1
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://*.gestaoclick.com/financeiro/movimentacoes_financeiras/index_recebimento*
@@ -440,9 +440,34 @@ GM_addStyle(`
         item.appendChild(createEnviarRecebimento(linkDetalhesTransacao));
     }
 
+    function getIndiceColunaCodigo(table) {
+        let headers = table.querySelectorAll('thead th');
+        for (let i = 0; i < headers.length; i++) {
+            let titulo = headers[i].innerText.trim().split('\n')[0].trim();
+            if (titulo === 'Nº' || titulo === 'Código') {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    function getCodigoRecebimento(row) {
+        let indice = getIndiceColunaCodigo(row.closest('table'));
+        if (indice >= 0 && row.cells[indice]) {
+            return row.cells[indice].innerText.trim();
+        }
+        // Fallback: primeira célula com conteúdo numérico (ignora coluna de seleção)
+        for (let j = 0; j < row.cells.length; j++) {
+            let texto = row.cells[j].innerText.trim();
+            if (/^\d+$/.test(texto)) {
+                return texto;
+            }
+        }
+        return null;
+    }
+
     function inserirEnviarRecebimentoNew(row, item, index) {
-        let menuAcoes = item.closest('td');
-        let codigo = row.firstChild.innerHTML;
+        let codigo = getCodigoRecebimento(row);
         if (isNaN(parseInt(codigo, 10))) {
             document.getElementById('ReciboStatus').innerHTML = 'Por favor habilite a coluna código na visualização da tabela.';
             return;
@@ -593,7 +618,7 @@ GM_addStyle(`
             if (!shouldInject) {
                 let cells = row.cells;
                 for (let j = 0; j < cells.length; j++) {
-                    if (cells[j].innerText === 'Confirmado') {
+                    if (cells[j].innerText.trim() === 'Confirmado') {
                         shouldInject = true;
                         break;
                     }
