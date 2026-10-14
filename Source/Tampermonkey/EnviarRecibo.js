@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      4.5
+// @version      4.6
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://*.gestaoclick.com/financeiro/movimentacoes_financeiras/index_recebimento*
@@ -79,7 +79,7 @@ GM_addStyle(`
     }
 
     // tipo: 'success' | 'danger' | 'warning' | null (esconde)
-    function setStatus(mensagem, tipo) {
+    function setStatus(mensagem, tipo, link) {
         let status = document.getElementById('ReciboStatus');
         status.className = 'alert';
         if (!mensagem) {
@@ -89,6 +89,15 @@ GM_addStyle(`
         }
         status.classList.add('alert-' + (tipo || 'success'));
         status.textContent = mensagem;
+        if (link) {
+            let anchor = document.createElement('a');
+            anchor.href = link.href;
+            anchor.target = '_blank';
+            anchor.rel = 'noopener';
+            anchor.className = 'alert-link ml-2';
+            anchor.textContent = link.texto;
+            status.appendChild(anchor);
+        }
     }
 
     function temValor(valor) {
@@ -569,8 +578,46 @@ GM_addStyle(`
         atualizarBotoesEnvio();
     }
 
+    // Converte o celular do cadastro para o formato do wa.me (somente dígitos, com DDI 55)
+    function normalizarCelular(celular) {
+        let digitos = String(celular || '').replace(/\D/g, '').replace(/^0+/, '');
+        if (digitos.length === 10 || digitos.length === 11) {
+            digitos = '55' + digitos;
+        }
+        return /^55\d{10,11}$/.test(digitos) ? digitos : null;
+    }
+
+    function montarMensagemWhatsapp(recibo) {
+        let tipo = parseInt(document.getElementById('TipoRecibo').value, 10) === 1 ? 'doação' : 'contribuição';
+        let primeiroNome = recibo.nome.trim().split(/\s+/)[0];
+        return `Olá, ${primeiroNome}! 🙏\n\n` +
+            `Agradecemos a sua ${tipo} ao Centro Espiritualista Fonte Violeta.\n\n` +
+            `*Recibo nº ${recibo.numero}/${recibo.ano}*\n` +
+            `Referente a: ${recibo.descricao}\n` +
+            `Valor: R$ ${recibo.valor}\n` +
+            `Data do pagamento: ${recibo.data}\n\n` +
+            `Tesouraria CEFV`;
+    }
+
     const enviaNotificacao = async (enviaEmail, enviaWhatsapp) => {
         if (envioEmAndamento) return;
+
+        enviaEmail = enviaEmail && contatosCliente.email;
+        enviaWhatsapp = enviaWhatsapp && contatosCliente.celular;
+        if (!enviaEmail && !enviaWhatsapp) return;
+
+        let celularWhatsapp = null;
+        let janelaWhatsapp = null;
+        if (enviaWhatsapp) {
+            celularWhatsapp = normalizarCelular(document.getElementById('ReciboTelefone').value);
+            if (!celularWhatsapp) {
+                setStatus('Celular do cliente em formato inválido para o WhatsApp: ' + document.getElementById('ReciboTelefone').value, 'danger');
+                return;
+            }
+            // Abre a aba ainda no clique para não ser bloqueada como pop-up; o endereço é definido após a resposta da API
+            janelaWhatsapp = window.open('', '_blank');
+        }
+
         envioEmAndamento = true;
         bloquearBotoesEnvio(true);
         setStatus(null);
@@ -605,14 +652,39 @@ GM_addStyle(`
         }).then(async (response) => {
 
             if (response.ok) {
-                setStatus(`Recibo ${objetoRequest.DadosNotificacaoRecibo.Numero}/${objetoRequest.DadosNotificacaoRecibo.Ano} enviado em ${objetoRequest.DadosNotificacaoRecibo.Data}`, 'success');
+                // O backend devolve o recibo gravado; se já existia, o número dele prevalece sobre o do formulário
+                let reciboGravado = await response.json().catch(() => null);
+                let recibo = {
+                    numero: reciboGravado?.numeroRecibo ?? objetoRequest.DadosNotificacaoRecibo.Numero,
+                    ano: reciboGravado?.anoRecibo ?? objetoRequest.DadosNotificacaoRecibo.Ano,
+                    nome: objetoRequest.DadosNotificacaoRecibo.Nome,
+                    descricao: objetoRequest.DadosNotificacaoRecibo.Descricao,
+                    valor: objetoRequest.DadosNotificacaoRecibo.Valor,
+                    data: objetoRequest.DadosNotificacaoRecibo.Data
+                };
+
+                let canais = [];
+                if (enviaEmail) canais.push('e-mail');
+                let linkWhatsapp = null;
+                if (enviaWhatsapp) {
+                    linkWhatsapp = `https://wa.me/${celularWhatsapp}?text=${encodeURIComponent(montarMensagemWhatsapp(recibo))}`;
+                    if (janelaWhatsapp && !janelaWhatsapp.closed) {
+                        janelaWhatsapp.location.href = linkWhatsapp;
+                    }
+                    canais.push('WhatsApp (confirme o envio na aba aberta)');
+                }
+
+                setStatus(`Recibo ${recibo.numero}/${recibo.ano} enviado via ${canais.join(' e ')}.`, 'success',
+                    linkWhatsapp ? { href: linkWhatsapp, texto: 'Abrir WhatsApp novamente' } : null);
                 // Mantém os botões bloqueados para evitar reenvio do mesmo recibo
                 return;
             }
+            janelaWhatsapp?.close();
             let detalhe = await response.text().catch(() => '');
             setStatus('Erro ao enviar recibo. ' + detalhe, 'danger');
             bloquearBotoesEnvio(false);
         }).catch((error) => {
+            janelaWhatsapp?.close();
             setStatus('Erro ao enviar recibo. ' + error.message, 'danger');
             bloquearBotoesEnvio(false);
         }).finally(() => {
