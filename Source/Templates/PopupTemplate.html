@@ -1,123 +1,99 @@
-<div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" id="enviarEmail" aria-modal="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+<!--
+    Popup "Enviar recibo" injetado pelo script Tampermonkey/EnviarRecibo.js (função criarPopUp).
+    Estrutura espelhada dos modais nativos do GestãoClick (ex.: "Imprimir recibo" em Contas a receber):
+      - título h4.mb-1 + hr dentro de section.content-header
+      - campos em .form-row com .form-group.required.col-sm-*
+      - rodapé .rodape-formulario: Cancelar (.cancelar-rodape) à esquerda, ações (.acao-rodape) à direita
+    Manter sincronizado com criarPopUp.
+-->
+<div class="modal fade" role="dialog" aria-modal="true" id="enviarEmail" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content modal-frame">
-            <div class="modal-header">
-                <h3 class="modal-title" style="display:inline;" id="titulo">Enviar Recibo</h3>
-                <div class="loader-violeta" style="display:inline-flex; margin-top:5px; margin-left:5px;"></div>
-                <h6 style="color: green;" id="ReciboStatus"></h6>
-            </div>
             <div class="modal-body">
-                <button type="button" aria-label="Close" class="close" id="BotaoFechar">×</button>
+                <button type="button" aria-label="Close" class="close" id="BotaoFechar">&times;</button>
                 <section class="content-header" modal="true">
-                    <h1> Imprimir recibo </h1>
-                </section>
-                <section class="content" style="margin-bottom: 10px; padding-bottom: 10px;">
-                    <div class="box">
-                        <div class="row">
-                            <div class="col-sm-12 col-lg-12 col-md-12">
-                                <div style="display:none;" wfd-invisible="true">
-                                    <input type="hidden" name="_method" value="PUT">
-                                </div>
-                                <input type="hidden" name="imprimir" value="1" autocomplete="off"
-                                    id="MovimentacoesFinanceiraImprimir" wfd-invisible="true">
-                                <div class="required form-group col-sm-12 col-lg-12 col-md-12">
-                                    <label for="TipoRecibo">Tipo Recibo</label>
-                                    <select name="tiporecibo" class="form-control" autocomplete="off" id="TipoRecibo"
-                                        required="required">
+                    <h4 class="mb-1 d-inline-block">Enviar recibo</h4>
+                    <div class="loader-violeta d-none"
+                        style="width: 16px; height: 16px; border-width: 4px; margin-left: 10px; vertical-align: middle;"></div>
+                    <hr>
+                    <section class="content">
+                        <form id="FormEnviarRecibo" onsubmit="return false;">
+                            <div id="ReciboStatus" class="alert d-none" role="status"></div>
+                            <div class="form-row">
+                                <div class="form-group required col-sm-4">
+                                    <label for="TipoRecibo" class="d-block">Tipo do recibo</label>
+                                    <select autocomplete="off" class="form-control" id="TipoRecibo" name="tiporecibo">
                                         <option value="0">Mensalidade</option>
                                         <option value="1">Doação</option>
                                     </select>
                                 </div>
-                                <div class="form-row p-2">
-                                    <div role="group" class="required form-group col-sm-6 col-lg-6 col-md-6">
-                                        <label for="ReciboNumero" class="d-block">Numero do recibo</label>
-                                        <input name="recibonumero" maxlength="100" value="" required="required"
-                                            class="required form-control" autocomplete="off" type="text"
-                                            id="ReciboNumero" placeholder="">
-                                    </div>
-                                    <div class="required form-group col-sm-6 col-lg-6 col-md-6">
-                                        <label for="ReciboAno">Ano do recibo</label>
-                                        <input name="reciboano" maxlength="100" value="" required="required"
-                                            class="required form-control" autocomplete="off" type="text" id="ReciboAno"
-                                            placeholder="">
-                                    </div>
+                                <div class="form-group required col-sm-4">
+                                    <label for="ReciboNumero" class="d-block">Número do recibo</label>
+                                    <input type="text" autocomplete="off" id="ReciboNumero" name="recibonumero"
+                                        class="form-control" maxlength="10">
                                 </div>
-                                <div class="form-row p-2">
-                                    <div class="required form-group col-sm-6 col-lg-6 col-md-6">
-                                        <label for="ReciboNome">Nome do Cliente</label>
-                                        <input name="nome" maxlength="100" value="" required="required"
-                                            class="required form-control" autocomplete="off" type="text" id="ReciboNome"
-                                            placeholder="">
-                                    </div>
-                                    <div class="required form-group col-sm-6 col-lg-6 col-md-6">
-                                        <label for="ReciboPlano">Plano de Contas</label>
-                                        <input name="plano" maxlength="30" value="" required="required"
-                                            class="required form-control" autocomplete="off" type="text"
-                                            id="ReciboPlano" placeholder="" readonly>
-                                    </div>
+                                <div class="form-group required col-sm-4">
+                                    <label for="ReciboAno" class="d-block">Ano do recibo</label>
+                                    <input type="text" autocomplete="off" id="ReciboAno" name="reciboano"
+                                        class="form-control" maxlength="4">
                                 </div>
-                                <div class="form-row p-2">
-                                    <div class="required form-group col-sm-6 col-lg-6 col-md-6">
-                                        <label for="ReciboData">Data do pagamento</label>
-                                        <input name="data" maxlength="10" value="" required="required"
-                                            class="required mascara-data form-control" autocomplete="off" type="text"
-                                            id="ReciboData" placeholder="">
-                                    </div>
-                                    <div class="required form-group col-sm-6 col-lg-6 col-md-6">
-                                        <label for="ReciboValorTotal">Valor</label>
-                                        <input name="valor" required="required"
-                                            class="mascara-valor required form-control" autocomplete="off" type="text"
-                                            value="" id="ReciboValorTotal" placeholder="">
-                                    </div>
+                                <div class="form-group required col-sm-6">
+                                    <label for="ReciboNome" class="d-block">Nome do cliente</label>
+                                    <input type="text" autocomplete="off" id="ReciboNome" name="nome"
+                                        class="form-control" maxlength="100">
                                 </div>
-                                <div class="col-sm-12 col-lg-12 col-md-12 required">
-                                    <label for="ReciboDescricao">Descrição</label>
-                                    <textarea name="descricao" class="form-control" autocomplete="off" cols="30"
-                                        rows="3" id="ReciboDescricao" required="required"></textarea>
+                                <div class="form-group required col-sm-6">
+                                    <label for="ReciboPlano" class="d-block">Plano de contas</label>
+                                    <input type="text" autocomplete="off" id="ReciboPlano" name="plano"
+                                        class="form-control" readonly>
                                 </div>
-                                <div class="col-sm-12 col-lg-12 col-md-12">
-                                    <hr>
+                                <div class="form-group required col-sm-6">
+                                    <label for="ReciboData" class="d-block">Data do pagamento</label>
+                                    <input type="text" autocomplete="off" id="ReciboData" name="data"
+                                        class="form-control" maxlength="10">
                                 </div>
-                                <div class="form-row p-2">
-                                    <div class="form-group col-sm-6 col-lg-6 col-md-6">
-                                        <label for="ReciboEmail">E-mail</label>
-                                        <input name="plano" maxlength="30" value="" class="form-control"
-                                            autocomplete="off" type="text" id="ReciboEmail" placeholder="" readonly>
-                                    </div>
-                                    <div class="form-group col-sm-6 col-lg-6 col-md-6">
-                                        <label for="ReciboTelefone">Número Telefone</label>
-                                        <input name="telefone" maxlength="30" value="" class="form-control"
-                                            autocomplete="off" type="text" id="ReciboTelefone" placeholder="" readonly>
-                                    </div>
+                                <div class="form-group required col-sm-6">
+                                    <label for="ReciboValorTotal" class="d-block">Valor</label>
+                                    <input type="text" autocomplete="off" id="ReciboValorTotal" name="valor"
+                                        class="form-control" style="text-align: right;">
                                 </div>
-                                <div class="form-row p-2">
-                                    <div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px">
-                                        <button class="btn btn-primary" id="BotaoEnviaNotificacao">
-                                            <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar
-                                            notificação
-                                        </button>   
-                                        <button id ="BotaoCancelar" type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close">
-                                            <span aria-hidden="true">Cancelar</span>
-                                        </button>
-                                    </div>
-                                    <div class="form-group col-sm-6 col-lg-6 col-md-6 margin-top-10px">
-                                        <button class="btn btn-secondary float-right margin-right-10px"
-                                            id="BotaoEnviaEmail">
-                                            <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar
-                                            via
-                                            e-mail
-                                        </button>
-                                        <button class="btn btn-secondary float-right margin-right-10px"
-                                            id="BotaoEnviaWhatsapp">
-                                            <span class="glyphicon glyphicon-envelope margin-right-10px"></span>Enviar
-                                            via
-                                            whatsapp
-                                        </button>
-                                    </div>
+                                <div class="form-group required col-sm-12">
+                                    <label for="ReciboDescricao" class="d-block">Descrição</label>
+                                    <textarea autocomplete="off" id="ReciboDescricao" name="descricao"
+                                        class="form-control" rows="4" wrap="soft"></textarea>
+                                </div>
+                                <div class="form-group col-sm-6">
+                                    <label for="ReciboEmail" class="d-block">E-mail</label>
+                                    <input type="text" autocomplete="off" id="ReciboEmail" name="email"
+                                        class="form-control" readonly>
+                                </div>
+                                <div class="form-group col-sm-6">
+                                    <label for="ReciboTelefone" class="d-block">Celular</label>
+                                    <input type="text" autocomplete="off" id="ReciboTelefone" name="telefone"
+                                        class="form-control" readonly>
+                                </div>
+                                <div class="col-sm-12">
+                                    <small id="ReciboAvisoContato" class="form-text text-danger d-none"></small>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                            <div class="rodape-formulario">
+                                <div class="cancelar-rodape">
+                                    <button type="button" class="btn btn-default" id="BotaoCancelar">Cancelar</button>
+                                </div>
+                                <div class="acao-rodape">
+                                    <button type="button" class="btn btn-default mr-2" id="BotaoEnviaWhatsapp">
+                                        <i class="fa fa-whatsapp mr-1"></i>Via WhatsApp
+                                    </button>
+                                    <button type="button" class="btn btn-default mr-2" id="BotaoEnviaEmail">
+                                        <i class="fa fa-envelope mr-1"></i>Via e-mail
+                                    </button>
+                                    <button type="button" class="btn btn-primary" id="BotaoEnviaNotificacao">
+                                        <i class="fa fa-paper-plane mr-1"></i>Enviar
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </section>
                 </section>
             </div>
         </div>

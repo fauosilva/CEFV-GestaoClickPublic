@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      4.1
+// @version      4.2
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://*.gestaoclick.com/financeiro/movimentacoes_financeiras/index_recebimento*
@@ -63,6 +63,31 @@ GM_addStyle(`
         } else {
             loader.classList.add('d-none');
         }
+    }
+
+    // tipo: 'success' | 'danger' | 'warning' | null (esconde)
+    function setStatus(mensagem, tipo) {
+        let status = document.getElementById('ReciboStatus');
+        status.className = 'alert';
+        if (!mensagem) {
+            status.textContent = '';
+            status.classList.add('d-none');
+            return;
+        }
+        status.classList.add('alert-' + (tipo || 'success'));
+        status.textContent = mensagem;
+    }
+
+    function temValor(valor) {
+        return valor != null && String(valor).trim() !== '';
+    }
+
+    // A API devolve o valor no formato "160.00"; o recibo usa o texto como está, então formatamos em pt-BR
+    function formatarValor(valor) {
+        if (!temValor(valor)) return valor;
+        let texto = String(valor).trim();
+        if (!/^-?\d+(\.\d+)?$/.test(texto)) return texto;
+        return Number(texto).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     function togglePopup(show) {
@@ -134,7 +159,7 @@ GM_addStyle(`
             dadosRecibo["Código"] = codigo;
             dadosRecibo["Plano de contas"] = reciboInformacoes.planoContas;
             dadosRecibo["Data de confirmação"] = reciboInformacoes.dataConfirmacao;
-            dadosRecibo["Valor total"] = reciboInformacoes.valorTotal;
+            dadosRecibo["Valor total"] = formatarValor(reciboInformacoes.valorTotal);
             dadosRecibo["Descrição do recebimento"] = reciboInformacoes.descricao;
             dadosRecibo["Observações"] = null;
 
@@ -218,9 +243,12 @@ GM_addStyle(`
         document.getElementById('ReciboDescricao').value = "";
         document.getElementById('ReciboEmail').value = "";
         document.getElementById('ReciboTelefone').value = "";
-        document.getElementById('ReciboStatus').innerHTML = "";
+        setStatus(null);
 
-        toggleBotoes(true, true);
+        document.getElementById('ReciboAvisoContato').classList.add('d-none');
+
+        bloquearBotoesEnvio(false);
+        toggleBotoes(false, false);
     }
 
     function preencherDadosReciboEnviado(ReciboEnviado) {
@@ -234,9 +262,12 @@ GM_addStyle(`
         document.getElementById('ReciboDescricao').value = ReciboEnviado.descricao;
         document.getElementById('ReciboEmail').value = ReciboEnviado.requestDetails.clienteRequest.email;
         document.getElementById('ReciboTelefone').value = ReciboEnviado.requestDetails.clienteRequest.celular;
-        document.getElementById('ReciboStatus').innerHTML = ReciboEnviado.ReciboStatus;
+        setStatus(ReciboEnviado.ReciboStatus, 'success');
 
-        toggleBotoes(ReciboEnviado.requestDetails.clienteRequest.email != null, ReciboEnviado.requestDetails.clienteRequest.celular != null);
+        let temEmail = temValor(ReciboEnviado.requestDetails.clienteRequest.email);
+        let temCelular = temValor(ReciboEnviado.requestDetails.clienteRequest.celular);
+        toggleBotoes(temEmail, temCelular);
+        exibirAvisoContato(temEmail, temCelular);
     }
 
     async function preencherPopup(JsonDados) {
@@ -252,11 +283,13 @@ GM_addStyle(`
         document.getElementById('ReciboEmail').value = JsonDados.DadosCliente["E-mail"];
         document.getElementById('ReciboTelefone').value = JsonDados.DadosCliente.Celular;
         if (JsonDados.ReciboDetails != null && JsonDados.ReciboDetails.ReciboStatus != null) {
-            document.getElementById('ReciboStatus').innerHTML = JsonDados.ReciboDetails.ReciboStatus;
+            setStatus(JsonDados.ReciboDetails.ReciboStatus, 'success');
         }
 
-        definirAcoesDropdownTipoRecibo();
-        toggleBotoes(JsonDados.DadosCliente["E-mail"] != null, JsonDados.DadosCliente.Celular != null);
+        let temEmail = temValor(JsonDados.DadosCliente["E-mail"]);
+        let temCelular = temValor(JsonDados.DadosCliente.Celular);
+        toggleBotoes(temEmail, temCelular);
+        exibirAvisoContato(temEmail, temCelular);
     }
 
     const parsePropriedadesRecibo = async (responseText) => {
@@ -311,86 +344,81 @@ GM_addStyle(`
     }
 
     function criarPopUp() {
+        // Estrutura espelhada dos modais nativos do GestãoClick (ex.: "Imprimir recibo").
+        // Manter sincronizado com Templates/PopupTemplate.html
         let popup = htmlToElement(
-            '<div class="fade modal" role="dialog" aria-hidden="true" aria-modal="true" id="enviarEmail" tabindex="-1">' +
+            '<div class="modal fade" role="dialog" aria-modal="true" id="enviarEmail" tabindex="-1">' +
               '<div class="modal-dialog modal-lg">' +
                 '<div class="modal-content modal-frame">' +
                   '<div class="modal-body">' +
                     '<button type="button" aria-label="Close" class="close" id="BotaoFechar">&times;</button>' +
                     '<section class="content-header" modal="true">' +
-                      '<h1 style="display: inline;">Enviar Recibo</h1>' +
-                      '<div class="loader-violeta d-none" style="display: inline-flex; margin-top: 5px; margin-left: 5px;"></div>' +
-                      '<h6 id="ReciboStatus" style="color: green;"></h6>' +
-                    '</section>' +
-                    '<section class="content">' +
-                      '<div class="card p-2">' +
-                        '<div class="row">' +
-                          '<div class="col-lg-12 col-md-12 col-sm-12">' +
-                            '<div class="required form-group col-lg-12 col-md-12 col-sm-12">' +
-                              '<label for="TipoRecibo">Tipo Recibo</label>' +
-                              '<select autocomplete="off" class="form-control" id="TipoRecibo" name="tiporecibo" required>' +
+                      '<h4 class="mb-1 d-inline-block">Enviar recibo</h4>' +
+                      '<div class="loader-violeta d-none" style="width: 16px; height: 16px; border-width: 4px; margin-left: 10px; vertical-align: middle;"></div>' +
+                      '<hr>' +
+                      '<section class="content">' +
+                        '<form id="FormEnviarRecibo" onsubmit="return false;">' +
+                          '<div id="ReciboStatus" class="alert d-none" role="status"></div>' +
+                          '<div class="form-row">' +
+                            '<div class="form-group required col-sm-4">' +
+                              '<label for="TipoRecibo" class="d-block">Tipo do recibo</label>' +
+                              '<select autocomplete="off" class="form-control" id="TipoRecibo" name="tiporecibo">' +
                                 '<option value="0">Mensalidade</option>' +
                                 '<option value="1">Doação</option>' +
                               '</select>' +
                             '</div>' +
-                            '<div class="form-row p-2">' +
-                              '<div class="required form-group col-lg-6 col-md-6 col-sm-6" role="group">' +
-                                '<label for="ReciboNumero" class="d-block">Numero do recibo</label>' +
-                                '<input name="recibonumero" autocomplete="off" id="ReciboNumero" class="required form-control" placeholder="" maxlength="100" required>' +
-                              '</div>' +
-                              '<div class="required form-group col-lg-6 col-md-6 col-sm-6">' +
-                                '<label for="ReciboAno">Ano do recibo</label>' +
-                                '<input name="reciboano" autocomplete="off" id="ReciboAno" class="required form-control" placeholder="" maxlength="100" required>' +
-                              '</div>' +
+                            '<div class="form-group required col-sm-4">' +
+                              '<label for="ReciboNumero" class="d-block">Número do recibo</label>' +
+                              '<input type="text" autocomplete="off" id="ReciboNumero" name="recibonumero" class="form-control" maxlength="10">' +
                             '</div>' +
-                            '<div class="form-row p-2">' +
-                              '<div class="required form-group col-lg-6 col-md-6 col-sm-6">' +
-                                '<label for="ReciboNome">Nome do Cliente</label>' +
-                                '<input name="nome" autocomplete="off" id="ReciboNome" class="required form-control" placeholder="" maxlength="100" required>' +
-                              '</div>' +
-                              '<div class="required form-group col-lg-6 col-md-6 col-sm-6">' +
-                                '<label for="ReciboPlano">Plano de Contas</label>' +
-                                '<input name="plano" autocomplete="off" id="ReciboPlano" class="required form-control" placeholder="" maxlength="30" required readonly>' +
-                              '</div>' +
+                            '<div class="form-group required col-sm-4">' +
+                              '<label for="ReciboAno" class="d-block">Ano do recibo</label>' +
+                              '<input type="text" autocomplete="off" id="ReciboAno" name="reciboano" class="form-control" maxlength="4">' +
                             '</div>' +
-                            '<div class="form-row p-2">' +
-                              '<div class="required form-group col-lg-6 col-md-6 col-sm-6">' +
-                                '<label for="ReciboData">Data do pagamento</label>' +
-                                '<input name="data" autocomplete="off" id="ReciboData" class="required form-control mascara-data" placeholder="" maxlength="10" required>' +
-                              '</div>' +
-                              '<div class="required form-group col-lg-6 col-md-6 col-sm-6">' +
-                                '<label for="ReciboValorTotal">Valor</label>' +
-                                '<input name="valor" autocomplete="off" id="ReciboValorTotal" class="required form-control mascara-valor" placeholder="" required>' +
-                              '</div>' +
+                            '<div class="form-group required col-sm-6">' +
+                              '<label for="ReciboNome" class="d-block">Nome do cliente</label>' +
+                              '<input type="text" autocomplete="off" id="ReciboNome" name="nome" class="form-control" maxlength="100">' +
                             '</div>' +
-                            '<div class="required col-lg-12 col-md-12 col-sm-12">' +
-                              '<label for="ReciboDescricao">Descrição</label>' +
-                              '<textarea autocomplete="off" class="form-control" cols="30" id="ReciboDescricao" name="descricao" required rows="3"></textarea>' +
+                            '<div class="form-group required col-sm-6">' +
+                              '<label for="ReciboPlano" class="d-block">Plano de contas</label>' +
+                              '<input type="text" autocomplete="off" id="ReciboPlano" name="plano" class="form-control" readonly>' +
                             '</div>' +
-                            '<div class="col-lg-12 col-md-12 col-sm-12"><hr></div>' +
-                            '<div class="form-row p-2">' +
-                              '<div class="form-group col-lg-6 col-md-6 col-sm-6">' +
-                                '<label for="ReciboEmail">E-mail</label>' +
-                                '<input name="plano" autocomplete="off" id="ReciboEmail" class="form-control" placeholder="" maxlength="30" readonly>' +
-                              '</div>' +
-                              '<div class="form-group col-lg-6 col-md-6 col-sm-6">' +
-                                '<label for="ReciboTelefone">Número Telefone</label>' +
-                                '<input name="telefone" autocomplete="off" id="ReciboTelefone" class="form-control" placeholder="" maxlength="30" readonly>' +
-                              '</div>' +
+                            '<div class="form-group required col-sm-6">' +
+                              '<label for="ReciboData" class="d-block">Data do pagamento</label>' +
+                              '<input type="text" autocomplete="off" id="ReciboData" name="data" class="form-control" maxlength="10">' +
                             '</div>' +
-                            '<div class="form-row p-2">' +
-                              '<div class="form-group col-lg-6 col-md-6 col-sm-6 margin-top-10px">' +
-                                '<button class="btn btn-primary" id="BotaoEnviaNotificacao"><span class="margin-right-10px glyphicon glyphicon-envelope"></span>Enviar notificação</button> ' +
-                                '<button class="btn btn-danger" id="BotaoCancelar" aria-label="Close" type="button"><span aria-hidden="true">Cancelar</span></button>' +
-                              '</div>' +
-                              '<div class="form-group col-lg-6 col-md-6 col-sm-6 margin-top-10px">' +
-                                '<button class="margin-right-10px btn btn-secondary float-right" id="BotaoEnviaEmail"><span class="margin-right-10px glyphicon glyphicon-envelope"></span>Enviar via e-mail</button> ' +
-                                '<button class="margin-right-10px btn btn-secondary float-right" id="BotaoEnviaWhatsapp"><span class="margin-right-10px glyphicon glyphicon-envelope"></span>Enviar via whatsapp</button>' +
-                              '</div>' +
+                            '<div class="form-group required col-sm-6">' +
+                              '<label for="ReciboValorTotal" class="d-block">Valor</label>' +
+                              '<input type="text" autocomplete="off" id="ReciboValorTotal" name="valor" class="form-control" style="text-align: right;">' +
+                            '</div>' +
+                            '<div class="form-group required col-sm-12">' +
+                              '<label for="ReciboDescricao" class="d-block">Descrição</label>' +
+                              '<textarea autocomplete="off" id="ReciboDescricao" name="descricao" class="form-control" rows="4" wrap="soft"></textarea>' +
+                            '</div>' +
+                            '<div class="form-group col-sm-6">' +
+                              '<label for="ReciboEmail" class="d-block">E-mail</label>' +
+                              '<input type="text" autocomplete="off" id="ReciboEmail" name="email" class="form-control" readonly>' +
+                            '</div>' +
+                            '<div class="form-group col-sm-6">' +
+                              '<label for="ReciboTelefone" class="d-block">Celular</label>' +
+                              '<input type="text" autocomplete="off" id="ReciboTelefone" name="telefone" class="form-control" readonly>' +
+                            '</div>' +
+                            '<div class="col-sm-12">' +
+                              '<small id="ReciboAvisoContato" class="form-text text-danger d-none"></small>' +
                             '</div>' +
                           '</div>' +
-                        '</div>' +
-                      '</div>' +
+                          '<div class="rodape-formulario">' +
+                            '<div class="cancelar-rodape">' +
+                              '<button type="button" class="btn btn-default" id="BotaoCancelar">Cancelar</button>' +
+                            '</div>' +
+                            '<div class="acao-rodape">' +
+                              '<button type="button" class="btn btn-default mr-2" id="BotaoEnviaWhatsapp"><i class="fa fa-whatsapp mr-1"></i>Via WhatsApp</button>' +
+                              '<button type="button" class="btn btn-default mr-2" id="BotaoEnviaEmail"><i class="fa fa-envelope mr-1"></i>Via e-mail</button>' +
+                              '<button type="button" class="btn btn-primary" id="BotaoEnviaNotificacao"><i class="fa fa-paper-plane mr-1"></i>Enviar</button>' +
+                            '</div>' +
+                          '</div>' +
+                        '</form>' +
+                      '</section>' +
                     '</section>' +
                   '</div>' +
                 '</div>' +
@@ -466,10 +494,20 @@ GM_addStyle(`
         return null;
     }
 
+    function exibirAvisoColunaCodigo(table) {
+        if (document.getElementById('AvisoColunaCodigo')) return;
+        let aviso = document.createElement('div');
+        aviso.id = 'AvisoColunaCodigo';
+        aviso.className = 'alert alert-warning';
+        aviso.setAttribute('role', 'alert');
+        aviso.textContent = 'Enviar recibo: não foi possível identificar o código dos recebimentos. Habilite a coluna "Nº" na visualização da tabela.';
+        table.parentElement.insertBefore(aviso, table);
+    }
+
     function inserirEnviarRecebimentoNew(row, item, index) {
         let codigo = getCodigoRecebimento(row);
         if (isNaN(parseInt(codigo, 10))) {
-            document.getElementById('ReciboStatus').innerHTML = 'Por favor habilite a coluna código na visualização da tabela.';
+            exibirAvisoColunaCodigo(row.closest('table'));
             return;
         }
         item.appendChild(createEnviarRecebimentoNew(codigo));
@@ -507,7 +545,20 @@ GM_addStyle(`
     }
 
 
+    let envioEmAndamento = false;
+
+    function bloquearBotoesEnvio(bloquear) {
+        ['BotaoEnviaNotificacao', 'BotaoEnviaEmail', 'BotaoEnviaWhatsapp', 'TipoRecibo'].forEach((id) => {
+            document.getElementById(id).disabled = bloquear;
+        });
+    }
+
     const enviaNotificacao = async (enviaEmail, enviaWhatsapp) => {
+        if (envioEmAndamento) return;
+        envioEmAndamento = true;
+        bloquearBotoesEnvio(true);
+        setStatus(null);
+
         const objetoRequest = {};
 
         toggleLoader(true);
@@ -535,20 +586,33 @@ GM_addStyle(`
                 'ApiKey': 'fraternidade'
             },
             body: JSON.stringify(objetoRequest)
-        }).then((response) => {
+        }).then(async (response) => {
 
             if (response.ok) {
-                document.getElementById('ReciboStatus').innerHTML = `Recibo ${objetoRequest.DadosNotificacaoRecibo.Numero}/${objetoRequest.DadosNotificacaoRecibo.Ano} enviado em ${objetoRequest.DadosNotificacaoRecibo.Data}`;
+                setStatus(`Recibo ${objetoRequest.DadosNotificacaoRecibo.Numero}/${objetoRequest.DadosNotificacaoRecibo.Ano} enviado em ${objetoRequest.DadosNotificacaoRecibo.Data}`, 'success');
+                // Mantém os botões bloqueados para evitar reenvio do mesmo recibo
+                return;
             }
-            else {
-                document.getElementById('ReciboStatus').innerHTML = 'Erro ao enviar recibo.';
-            }
-        }).finally(() => { toggleLoader(false) });
+            let detalhe = await response.text().catch(() => '');
+            setStatus('Erro ao enviar recibo. ' + detalhe, 'danger');
+            bloquearBotoesEnvio(false);
+        }).catch((error) => {
+            setStatus('Erro ao enviar recibo. ' + error.message, 'danger');
+            bloquearBotoesEnvio(false);
+        }).finally(() => {
+            envioEmAndamento = false;
+            toggleLoader(false);
+        });
     }
+
+    let ultimaBuscaNumeroRecibo = 0;
 
     async function definirProximoNumeroRecibo() {
         let tipoRecibo = document.getElementById('TipoRecibo');
+        const buscaAtual = ++ultimaBuscaNumeroRecibo;
         const proximoNumeroRecibo = await getProximoNumeroReciboByTemplate(tipoRecibo.value);
+        // Ignora respostas de buscas anteriores (troca rápida de tipo)
+        if (buscaAtual !== ultimaBuscaNumeroRecibo) return;
         document.getElementById('ReciboNumero').value = proximoNumeroRecibo.NumeroRecibo;
         document.getElementById('ReciboAno').value = proximoNumeroRecibo.Ano;
     }
@@ -565,13 +629,9 @@ GM_addStyle(`
         botaoFechar.onclick = function () { togglePopup(false) };
         let botaoCancelar = document.getElementById("BotaoCancelar");
         botaoCancelar.onclick = function() { togglePopup(false) };
-    }
 
-    function definirAcoesDropdownTipoRecibo() {
         let tipoRecibo = document.getElementById('TipoRecibo');
-        tipoRecibo.addEventListener("change", (event) => {
-            definirProximoNumeroRecibo()
-        });
+        tipoRecibo.onchange = function () { definirProximoNumeroRecibo(); };
     }
 
     function toggleBotoes(enviaEmailEnabled, enviaWhatsappEnabled) {
@@ -601,6 +661,19 @@ GM_addStyle(`
         else {
             enviaWhatsappButton.style.display = "initial";
         }
+    }
+
+    function exibirAvisoContato(temEmail, temCelular) {
+        let aviso = document.getElementById('ReciboAvisoContato');
+        let faltando = [];
+        if (!temEmail) faltando.push('e-mail');
+        if (!temCelular) faltando.push('celular');
+        if (faltando.length === 0) {
+            aviso.classList.add('d-none');
+            return;
+        }
+        aviso.textContent = 'Cliente sem ' + faltando.join(' e ') + ' cadastrado no GestãoClick.';
+        aviso.classList.remove('d-none');
     }
 
     function injectMenuItems(table) {
