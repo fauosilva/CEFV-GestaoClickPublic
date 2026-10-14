@@ -74,24 +74,29 @@
                                     <input type="text" autocomplete="off" id="ReciboTelefone" name="telefone"
                                         class="form-control" readonly>
                                 </div>
-                                <div class="col-sm-12">
-                                    <small id="ReciboAvisoContato" class="form-text text-danger d-none"></small>
-                                </div>
                             </div>
                             <div class="rodape-formulario">
                                 <div class="cancelar-rodape">
                                     <button type="button" class="btn btn-default" id="BotaoCancelar">Cancelar</button>
                                 </div>
+                                <!-- Cada botão fica num span: quando desabilitado, o motivo vai no title do span
+                                     (botões desabilitados não recebem eventos de mouse) -->
                                 <div class="acao-rodape">
-                                    <button type="button" class="btn btn-default mr-2" id="BotaoEnviaWhatsapp">
-                                        <i class="fa fa-mobile mr-1"></i>Via WhatsApp
-                                    </button>
-                                    <button type="button" class="btn btn-default mr-2" id="BotaoEnviaEmail">
-                                        <i class="fa fa-envelope mr-1"></i>Via e-mail
-                                    </button>
-                                    <button type="button" class="btn btn-primary" id="BotaoEnviaNotificacao">
-                                        Enviar
-                                    </button>
+                                    <span class="d-inline-block mr-2">
+                                        <button type="button" class="btn btn-default" id="BotaoEnviaWhatsapp">
+                                            <i class="fa fa-mobile mr-1"></i>Via WhatsApp
+                                        </button>
+                                    </span>
+                                    <span class="d-inline-block mr-2">
+                                        <button type="button" class="btn btn-default" id="BotaoEnviaEmail">
+                                            <i class="fa fa-envelope mr-1"></i>Via e-mail
+                                        </button>
+                                    </span>
+                                    <span class="d-inline-block">
+                                        <button type="button" class="btn btn-primary" id="BotaoEnviaNotificacao">
+                                            Enviar
+                                        </button>
+                                    </span>
                                 </div>
                             </div>
                         </form>

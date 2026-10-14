@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Imprimir comprovante
 // @namespace    http://tampermonkey.net/
-// @version      4.3
+// @version      4.4
 // @description  Script that injects a new action on the menu to send mail with the receipt.
 // @author       Fabricio Oliveira Silva - fauosilva@gmail.com
 // @match        https://*.gestaoclick.com/financeiro/movimentacoes_financeiras/index_recebimento*
@@ -41,6 +41,10 @@ GM_addStyle(`
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+#enviarEmail .acao-rodape span[title]:not([title=""]) {
+  cursor: not-allowed;
 }
 ` );
 
@@ -254,8 +258,6 @@ GM_addStyle(`
         document.getElementById('ReciboTelefone').value = "";
         setStatus(null);
 
-        document.getElementById('ReciboAvisoContato').classList.add('d-none');
-
         bloquearBotoesEnvio(false);
         toggleBotoes(false, false);
     }
@@ -276,7 +278,6 @@ GM_addStyle(`
         let temEmail = temValor(ReciboEnviado.requestDetails.clienteRequest.email);
         let temCelular = temValor(ReciboEnviado.requestDetails.clienteRequest.celular);
         toggleBotoes(temEmail, temCelular);
-        exibirAvisoContato(temEmail, temCelular);
     }
 
     async function preencherPopup(JsonDados) {
@@ -298,7 +299,6 @@ GM_addStyle(`
         let temEmail = temValor(JsonDados.DadosCliente["E-mail"]);
         let temCelular = temValor(JsonDados.DadosCliente.Celular);
         toggleBotoes(temEmail, temCelular);
-        exibirAvisoContato(temEmail, temCelular);
     }
 
     const parsePropriedadesRecibo = async (responseText) => {
@@ -412,18 +412,15 @@ GM_addStyle(`
                               '<label for="ReciboTelefone" class="d-block">Celular</label>' +
                               '<input type="text" autocomplete="off" id="ReciboTelefone" name="telefone" class="form-control" readonly>' +
                             '</div>' +
-                            '<div class="col-sm-12">' +
-                              '<small id="ReciboAvisoContato" class="form-text text-danger d-none"></small>' +
-                            '</div>' +
                           '</div>' +
                           '<div class="rodape-formulario">' +
                             '<div class="cancelar-rodape">' +
                               '<button type="button" class="btn btn-default" id="BotaoCancelar">Cancelar</button>' +
                             '</div>' +
                             '<div class="acao-rodape">' +
-                              '<button type="button" class="btn btn-default mr-2" id="BotaoEnviaWhatsapp"><i class="fa fa-mobile mr-1"></i>Via WhatsApp</button>' +
-                              '<button type="button" class="btn btn-default mr-2" id="BotaoEnviaEmail"><i class="fa fa-envelope mr-1"></i>Via e-mail</button>' +
-                              '<button type="button" class="btn btn-primary" id="BotaoEnviaNotificacao">Enviar</button>' +
+                              '<span class="d-inline-block mr-2"><button type="button" class="btn btn-default" id="BotaoEnviaWhatsapp"><i class="fa fa-mobile mr-1"></i>Via WhatsApp</button></span>' +
+                              '<span class="d-inline-block mr-2"><button type="button" class="btn btn-default" id="BotaoEnviaEmail"><i class="fa fa-envelope mr-1"></i>Via e-mail</button></span>' +
+                              '<span class="d-inline-block"><button type="button" class="btn btn-primary" id="BotaoEnviaNotificacao">Enviar</button></span>' +
                             '</div>' +
                           '</div>' +
                         '</form>' +
@@ -561,11 +558,13 @@ GM_addStyle(`
 
 
     let envioEmAndamento = false;
+    let envioBloqueado = false;
+    let contatosCliente = { email: false, celular: false };
 
     function bloquearBotoesEnvio(bloquear) {
-        ['BotaoEnviaNotificacao', 'BotaoEnviaEmail', 'BotaoEnviaWhatsapp', 'TipoRecibo'].forEach((id) => {
-            document.getElementById(id).disabled = bloquear;
-        });
+        envioBloqueado = bloquear;
+        document.getElementById('TipoRecibo').disabled = bloquear;
+        atualizarBotoesEnvio();
     }
 
     const enviaNotificacao = async (enviaEmail, enviaWhatsapp) => {
@@ -616,6 +615,7 @@ GM_addStyle(`
             bloquearBotoesEnvio(false);
         }).finally(() => {
             envioEmAndamento = false;
+            atualizarBotoesEnvio();
             toggleLoader(false);
         });
     }
@@ -649,46 +649,30 @@ GM_addStyle(`
         tipoRecibo.onchange = function () { definirProximoNumeroRecibo(); };
     }
 
-    function toggleBotoes(enviaEmailEnabled, enviaWhatsappEnabled) {
-        let enviaNotificacaoEnabled = true;
-        if (enviaEmailEnabled == false && enviaWhatsappEnabled == false) {
-            enviaNotificacaoEnabled = false;
-        }
-
-        let enviaNotificacaoButton = document.getElementById('BotaoEnviaNotificacao');
-        if (!enviaNotificacaoEnabled) {
-            enviaNotificacaoButton.style.display = "none";
-        }
-        else {
-            enviaNotificacaoButton.style.display = "initial";
-        }
-        let enviaEmailButton = document.getElementById('BotaoEnviaEmail');
-        if (!enviaEmailEnabled) {
-            enviaEmailButton.style.display = "none";
-        }
-        else {
-            enviaEmailButton.style.display = "initial";
-        }
-        let enviaWhatsappButton = document.getElementById('BotaoEnviaWhatsapp');
-        if (!enviaWhatsappEnabled) {
-            enviaWhatsappButton.style.display = "none";
-        }
-        else {
-            enviaWhatsappButton.style.display = "initial";
-        }
+    function toggleBotoes(temEmail, temCelular) {
+        contatosCliente.email = temEmail;
+        contatosCliente.celular = temCelular;
+        atualizarBotoesEnvio();
     }
 
-    function exibirAvisoContato(temEmail, temCelular) {
-        let aviso = document.getElementById('ReciboAvisoContato');
-        let faltando = [];
-        if (!temEmail) faltando.push('e-mail');
-        if (!temCelular) faltando.push('celular');
-        if (faltando.length === 0) {
-            aviso.classList.add('d-none');
-            return;
-        }
-        aviso.textContent = 'Cliente sem ' + faltando.join(' e ') + ' cadastrado no GestãoClick.';
-        aviso.classList.remove('d-none');
+    // Botão fica sempre visível; quando indisponível é desabilitado e o motivo aparece no tooltip (title do wrapper,
+    // pois botões desabilitados não recebem eventos de mouse)
+    function definirEstadoBotao(id, habilitado, motivo) {
+        let botao = document.getElementById(id);
+        botao.disabled = !habilitado;
+        botao.style.pointerEvents = habilitado ? '' : 'none';
+        botao.parentElement.title = habilitado ? '' : motivo;
+    }
+
+    function atualizarBotoesEnvio() {
+        const semEmail = 'Cliente sem e-mail cadastrado no GestãoClick.';
+        const semCelular = 'Cliente sem celular cadastrado no GestãoClick.';
+        const motivoBloqueio = !envioBloqueado ? null : (envioEmAndamento ? 'Enviando recibo...' : 'Recibo já enviado.');
+
+        definirEstadoBotao('BotaoEnviaEmail', !envioBloqueado && contatosCliente.email, motivoBloqueio || semEmail);
+        definirEstadoBotao('BotaoEnviaWhatsapp', !envioBloqueado && contatosCliente.celular, motivoBloqueio || semCelular);
+        definirEstadoBotao('BotaoEnviaNotificacao', !envioBloqueado && (contatosCliente.email || contatosCliente.celular),
+            motivoBloqueio || 'Cliente sem e-mail e celular cadastrados no GestãoClick.');
     }
 
     function injectMenuItems(table) {
